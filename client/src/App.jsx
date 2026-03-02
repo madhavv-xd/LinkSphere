@@ -1,35 +1,38 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
+    <div className="app">
+
+      {/* Navbar */}
+      <nav className="navbar">
+        <h2 className="logo">LinkSphere</h2>
+        <div className="nav-links">
+          <a href="#">Download</a>
+          <a href="#">Nitro</a>
+          <a href="#">Discover</a>
+          <a href="#">Safety</a>
+        </div>
+        <button className="login-btn">Login</button>
+      </nav>
+
+      {/* Hero Section */}
+      <div className="hero">
+        <h1>IMAGINE A PLACE...</h1>
         <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
+          ...where you can belong to a school club, gaming group,
+          or a worldwide art community. Where just you and a handful
+          of friends can spend time together.
         </p>
+
+        <div className="buttons">
+          <button className="primary-btn">Download for Windows</button>
+          <button className="secondary-btn">Open in Browser</button>
+        </div>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+
+    </div>
+  );
 }
 
-export default App
+export default App;
