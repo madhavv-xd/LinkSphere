@@ -9,7 +9,6 @@ const jwt = require("jsonwebtoken");
 const SECRET = "linksphere_secret_key";
 const usersFilePath = path.join(__dirname, "../../users.json");
 
-
 const getUsers = () => {
   if (!fs.existsSync(usersFilePath)) {
     fs.writeFileSync(usersFilePath, "[]");
@@ -18,11 +17,9 @@ const getUsers = () => {
   return JSON.parse(data);
 };
 
-
 const saveUsers = (users) => {
   fs.writeFileSync(usersFilePath, JSON.stringify(users, null, 2));
 };
-
 
 const signup = async (req, res) => {
   const { username, email, password } = req.body;
@@ -54,7 +51,6 @@ const signup = async (req, res) => {
 };
 
 
-
 const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -77,7 +73,7 @@ const login = async (req, res) => {
   const token = jwt.sign(
     { id: user.id, username: user.username },
     SECRET,
-    { expiresIn: "1h" }
+    { expiresIn: "5s" }
   );
 
   res.status(200).json({
@@ -87,12 +83,9 @@ const login = async (req, res) => {
 };
 
 
-
 const getUser = (req, res) => {
   const { id } = req.params;
-
   const users = getUsers();
-
   const user = users.find(user => user.id == id);
 
   if (!user) {
