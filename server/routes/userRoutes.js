@@ -1,18 +1,19 @@
-const verifyToken = require("../middleware/authMiddleware");
+// User Routes
+// Public  : POST /api/users/signup, POST /api/users/login
+// Protected (JWT required): GET /api/users/:id, PUT /api/users/:id, DELETE /api/users/:id
+
 const express = require("express");
 const router = express.Router();
-const { login, signup, getUser } = require("../controllers/userController");
-const userController = require("../controllers/userController");
+const verifyToken = require("../middleware/authMiddleware");
+const { signup, login, getUser, updateUser, deleteUser } = require("../controllers/userController");
 
-// POST /api/users/login
-router.post("/login", userController.login);
+// ── Public routes ─────────────────────────────────────────────────────────────
+router.post("/signup", signup);
+router.post("/login",  login);
 
-// POST /api/users/signup
-router.post("/signup", userController.signup);
+// ── Protected routes ──────────────────────────────────────────────────────────
+router.get   ("/:id", verifyToken, getUser);
+router.put   ("/:id", verifyToken, updateUser);
+router.delete("/:id", verifyToken, deleteUser);
 
-// GET /api/users/:id
-router.get("/:id", verifyToken, userController.getUser);
-
-router.put("/:id", verifyToken, userController.updateUser);
-router.delete("/:id", verifyToken, userController.deleteUser);
 module.exports = router;

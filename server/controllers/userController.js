@@ -1,30 +1,36 @@
 // User Controller
-// NOTE: No real DB yet — placeholder logic only
+// Uses flat-file JSON storage (no database)
+// Passwords stored as plain text (no hashing) — for learning purposes
 
 const fs = require("fs");
 const path = require("path");
-// const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 const SECRET = "linksphere_secret_key";
-const usersFilePath = path.join(__dirname, "../../users.json");
 
+// Path to the users data file
+const usersFilePath = path.join(__dirname, "../../data/users.json");
+
+
+// ─── File Helpers ────────────────────────────────────────────────────────────
 
 const getUsers = () => {
   if (!fs.existsSync(usersFilePath)) {
     fs.writeFileSync(usersFilePath, "[]");
   }
-  const data = fs.readFileSync(usersFilePath);
+  const data = fs.readFileSync(usersFilePath, "utf-8");
   return JSON.parse(data);
 };
-
 
 const saveUsers = (users) => {
   fs.writeFileSync(usersFilePath, JSON.stringify(users, null, 2));
 };
 
 
-const signup = async (req, res) => {
+// ─── Controllers ─────────────────────────────────────────────────────────────
+
+// POST /api/users/signup
+const signup = (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
@@ -33,7 +39,7 @@ const signup = async (req, res) => {
 
   const users = getUsers();
 
-  const existingUser = users.find(user => user.email === email);
+  const existingUser = users.find((user) => user.email === email);
   if (existingUser) {
     return res.status(400).json({ error: "User already exists" });
   }
@@ -42,20 +48,18 @@ const signup = async (req, res) => {
     id: Date.now(),
     username,
     email,
-    password: password
+    password, // plain text — no hashing
   };
 
   users.push(newUser);
   saveUsers(users);
 
-  res.status(201).json({
-    message: "Account created successfully"
-  });
+  res.status(201).json({ message: "Account created successfully" });
 };
 
 
-
-const login = async (req, res) => {
+// POST /api/users/login
+const login = (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -64,16 +68,17 @@ const login = async (req, res) => {
 
   const users = getUsers();
 
-  const user = users.find(user => user.email === email);
-
+  const user = users.find((user) => user.email === email);
   if (!user) {
-    return res.status(400).json({ error: "User not found" });
+    return res.status(404).json({ error: "User not found" });
   }
 
+  // Direct plain-text password comparison
   if (password !== user.password) {
-    return res.status(400).json({ error: "Invalid credentials" });
+    return res.status(401).json({ error: "Invalid credentials" });
   }
 
+  // Sign JWT with user id and username
   const token = jwt.sign(
     { id: user.id, username: user.username },
     SECRET,
@@ -82,81 +87,83 @@ const login = async (req, res) => {
 
   res.status(200).json({
     message: "Login successful",
-    token
+    token,
   });
 };
 
 
-
+// GET /api/users/:id  (protected)
 const getUser = (req, res) => {
   const { id } = req.params;
-
   const users = getUsers();
 
-  const user = users.find(user => user.id == id);
-
+  const user = users.find((user) => user.id == id);
   if (!user) {
     return res.status(404).json({ error: "User not found" });
   }
 
+  // Never return the password field
   res.status(200).json({
     id: user.id,
     username: user.username,
-    email: user.email
+    email: user.email,
   });
 };
 
+
+// PUT /api/users/:id  (protected)
 const updateUser = (req, res) => {
   const { id } = req.params;
 
+  // Only allow a user to update their own account
   if (req.user.id != id) {
-  return res.status(403).json({ error: "Unauthorized action" });
+    return res.status(403).json({ error: "Unauthorized action" });
   }
-  const { username, email, password } = req.body;
 
+  const { username, email, password } = req.body;
   const users = getUsers();
 
-  const userIndex = users.findIndex(user => user.id == id);
-
+  const userIndex = users.findIndex((user) => user.id == id);
   if (userIndex === -1) {
     return res.status(404).json({ error: "User not found" });
   }
 
-  // Update fields if provided
   if (username) users[userIndex].username = username;
-  if (email) users[userIndex].email = email;
-  if (password) users[userIndex].password = password;
+  if (email)    users[userIndex].email    = email;
+  if (password) users[userIndex].password = password; // plain text
 
   saveUsers(users);
 
   res.status(200).json({
     message: "User updated successfully",
-    user: users[userIndex]
+    user: {
+      id:       users[userIndex].id,
+      username: users[userIndex].username,
+      email:    users[userIndex].email,
+    },
   });
 };
 
+
+// DELETE /api/users/:id  (protected)
 const deleteUser = (req, res) => {
   const { id } = req.params;
 
   if (req.user.id != id) {
-    return res.status(403).json({
-      error: "You can only delete your own account"
-    });
+    return res.status(403).json({ error: "You can only delete your own account" });
   }
 
   const users = getUsers();
-  const userExists = users.find(user => user.id == id);
-
+  const userExists = users.find((user) => user.id == id);
   if (!userExists) {
     return res.status(404).json({ error: "User not found" });
   }
 
-  const updatedUsers = users.filter(user => user.id != id);
+  const updatedUsers = users.filter((user) => user.id != id);
   saveUsers(updatedUsers);
 
-  res.status(200).json({
-    message: "Account deleted successfully"
-  });
+  res.status(200).json({ message: "Account deleted successfully" });
 };
 
-module.exports = { login, signup, getUser,updateUser,deleteUser };
+
+module.exports = { signup, login, getUser, updateUser, deleteUser };

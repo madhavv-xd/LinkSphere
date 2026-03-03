@@ -2,8 +2,8 @@ import { useNavigate } from "react-router-dom";
 import AuthForm from "../components/AuthForm";
 
 const SIGNUP_FIELDS = [
-  { name: "username", label: "Username", type: "text", placeholder: "Choose a username" },
-  { name: "email", label: "Email", type: "email", placeholder: "you@example.com" },
+  { name: "username", label: "Username", type: "text",     placeholder: "Choose a username" },
+  { name: "email",    label: "Email",    type: "email",    placeholder: "you@example.com"   },
   { name: "password", label: "Password", type: "password", placeholder: "Create a password" },
 ];
 
@@ -17,14 +17,17 @@ export default function Signup() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+
       if (res.ok) {
-        navigate("/app");
+        // Account created — redirect to login so user authenticates and gets a token
+        navigate("/login");
       } else {
-        alert("Signup failed. Please try again.");
+        const err = await res.json();
+        alert(err.error || "Signup failed. Please try again.");
       }
-    } catch {
-      // Dev mode: navigate anyway if server not running
-      navigate("/app");
+    } catch (error) {
+      console.error("Signup error:", error);
+      alert("Could not connect to server.");
     }
   };
 
