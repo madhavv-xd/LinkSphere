@@ -106,4 +106,29 @@ const getUser = (req, res) => {
   });
 };
 
-module.exports = { login, signup, getUser };
+const updateUser = (req, res) => {
+  const { id } = req.params;
+  const { username, email, password } = req.body;
+
+  const users = getUsers();
+
+  const userIndex = users.findIndex(user => user.id == id);
+
+  if (userIndex === -1) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  // Update fields if provided
+  if (username) users[userIndex].username = username;
+  if (email) users[userIndex].email = email;
+  if (password) users[userIndex].password = password;
+
+  saveUsers(users);
+
+  res.status(200).json({
+    message: "User updated successfully",
+    user: users[userIndex]
+  });
+};
+
+module.exports = { login, signup, getUser,updateUser };

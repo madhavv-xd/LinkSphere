@@ -13,4 +13,6 @@ router.post("/signup", userController.signup);
 // GET /api/users/:id
 router.get("/:id", verifyToken, userController.getUser);
 
+router.put("/:id", verifyToken, userController.updateUser);
+
 module.exports = router;
