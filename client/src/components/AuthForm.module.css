@@ -1,45 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono:wght@700&display=swap');
+
 .wrapper {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  background: var(--bg);
+  padding: 2rem 1.5rem;
+  background: #0a0b0d;
+  background-image:
+    linear-gradient(rgba(124,111,247,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,111,247,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  font-family: 'Outfit', sans-serif;
 }
 
 .card {
   width: 100%;
   max-width: 420px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 2.5rem;
+  background: #111318;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 2.5rem 2.25rem;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
 }
 
 .brandMark {
-  font-size: 2rem;
-  color: var(--accent);
-  margin-bottom: 1rem;
+  font-size: 1.75rem;
+  color: #7c6ff7;
+  margin-bottom: 1.25rem;
+  display: block;
+  font-family: 'Space Mono', monospace;
 }
 
 .title {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  font-size: 1.8rem;
-  margin-bottom: 0.4rem;
-  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.6rem;
+  color: #f0f1f5;
+  margin-bottom: 0.35rem;
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
-  color: var(--text-muted);
-  font-size: 0.9rem;
+  color: #6b6f7e;
+  font-size: 0.875rem;
   margin-bottom: 2rem;
+  font-weight: 400;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: 1rem;
 }
 
 .field {
@@ -49,54 +61,86 @@
 }
 
 .label {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 500;
-  color: var(--text-muted);
+  color: #7b7f8e;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 .input {
-  background: var(--surface2);
-  border: 1px solid var(--border);
+  background: #0d0e11;
+  border: 1px solid rgba(255,255,255,0.09);
   border-radius: 8px;
   padding: 0.75rem 1rem;
-  color: var(--text);
-  font-size: 0.95rem;
-  transition: border-color 0.2s;
+  color: #e2e4ea;
+  font-size: 0.925rem;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 400;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .input:focus {
-  border-color: var(--accent);
+  border-color: #7c6ff7;
+  box-shadow: 0 0 0 3px rgba(124,111,247,0.12);
 }
 
 .input::placeholder {
-  color: var(--text-muted);
+  color: #3d4050;
 }
 
 .submitBtn {
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
   padding: 0.8rem;
-  background: var(--accent);
+  background: #7c6ff7;
   color: #fff;
+  border: none;
   border-radius: 8px;
   font-size: 0.95rem;
   font-weight: 600;
-  transition: background 0.2s;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  width: 100%;
 }
 
-.submitBtn:hover { background: var(--accent-hover); }
+.submitBtn:hover {
+  background: #9589fa;
+  transform: translateY(-1px);
+}
+
+.submitBtn:active {
+  transform: translateY(0);
+}
 
 .footer {
   margin-top: 1.5rem;
   text-align: center;
   font-size: 0.85rem;
-  color: var(--text-muted);
+  color: #5a5e6e;
+  font-weight: 400;
 }
 
 .footerLink {
-  color: var(--accent);
+  color: #7c6ff7;
   font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
 }
 
-.footerLink:hover { text-decoration: underline; }
+.footerLink:hover {
+  color: #9589fa;
+  text-decoration: underline;
+}
+
+/* Divider between form and footer */
+.card::after {
+  content: '';
+  display: block;
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+  margin: 1.5rem -2.25rem 0;
+}
