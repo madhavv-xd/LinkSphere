@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./AppPage.module.css";
@@ -38,6 +39,12 @@ export default function AppPage() {
   const channels = CHANNELS[activeServer] || [];
   const messages = chatMessages[activeChannel] || [];
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+    }
+  }, []);
   const sendMessage = () => {
     if (!message.trim()) return;
     const newMsg = {
