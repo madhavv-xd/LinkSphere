@@ -2,8 +2,8 @@ import { useNavigate } from "react-router-dom";
 import AuthForm from "../components/AuthForm";
 
 const LOGIN_FIELDS = [
-  { name: "email", label: "Email", type: "email", placeholder: "you@example.com" },
-  { name: "password", label: "Password", type: "password", placeholder: "Your password" },
+  { name: "email",    label: "Email",    type: "email",    placeholder: "you@example.com" },
+  { name: "password", label: "Password", type: "password", placeholder: "Your password"   },
 ];
 
 export default function Login() {
@@ -16,16 +16,19 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+
       if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem("token",data.token);
+        const json = await res.json();
+        // Store JWT token for use in protected requests
+        localStorage.setItem("token", json.token);
         navigate("/app");
       } else {
-        alert("Login failed. Check your credentials.");
+        const err = await res.json();
+        alert(err.error || "Login failed. Check your credentials.");
       }
-    } catch {
-      // Dev mode: navigate anyway if server not running
-      navigate("/app");
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Could not connect to server.");
     }
   };
 
