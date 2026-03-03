@@ -108,6 +108,10 @@ const getUser = (req, res) => {
 
 const updateUser = (req, res) => {
   const { id } = req.params;
+
+  if (req.user.id != id) {
+  return res.status(403).json({ error: "Unauthorized action" });
+  }
   const { username, email, password } = req.body;
 
   const users = getUsers();
@@ -131,4 +135,28 @@ const updateUser = (req, res) => {
   });
 };
 
-module.exports = { login, signup, getUser,updateUser };
+const deleteUser = (req, res) => {
+  const { id } = req.params;
+
+  if (req.user.id != id) {
+    return res.status(403).json({
+      error: "You can only delete your own account"
+    });
+  }
+
+  const users = getUsers();
+  const userExists = users.find(user => user.id == id);
+
+  if (!userExists) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  const updatedUsers = users.filter(user => user.id != id);
+  saveUsers(updatedUsers);
+
+  res.status(200).json({
+    message: "Account deleted successfully"
+  });
+};
+
+module.exports = { login, signup, getUser,updateUser,deleteUser };
