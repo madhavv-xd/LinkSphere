@@ -569,6 +569,28 @@
   cursor: not-allowed;
 }
 
+.cancelLinkBtn {
+  background: transparent;
+  color: #e4e6eb;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.cancelLinkBtn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.cancelLinkBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .confirmDeleteBtn {
   background: #ef4444;
   color: #fff;
@@ -625,4 +647,63 @@
     opacity: 1;
     transform: translate(-50%, 0);
   }
+}
+
+/* Edit Modal Forms */
+.formGroup {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.inputLabel {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #8b8fa3;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.inputField {
+  width: 100%;
+  background: #0d1017;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #e4e6eb;
+  padding: 10px 14px;
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.inputField:focus {
+  border-color: #5865f2;
+}
+
+.confirmEditBtn {
+  background: #5865f2;
+  color: #fff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.confirmEditBtn:hover:not(:disabled) {
+  background: #4752c4;
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+}
+
+.confirmEditBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
