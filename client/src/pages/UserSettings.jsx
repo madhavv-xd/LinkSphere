@@ -9,7 +9,43 @@ export default function UserSettings({ onClose }) {
 
   // Mask email for display
   const [showEmail, setShowEmail] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
   const maskedEmail = email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(b.length) + c);
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    setDeleteError("");
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+
+    try {
+      const res = await fetch(`http://localhost:8000/api/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        setShowDeleteConfirm(false);
+        setShowSuccessToast(true);
+        setTimeout(() => {
+          handleLogout();
+        }, 2000);
+      } else {
+        const json = await res.json();
+        setDeleteError(json.error || "Failed to delete account");
+      }
+    } catch (err) {
+      console.error("Error deleting account:", err);
+      setDeleteError("Could not connect to server.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -163,7 +199,7 @@ export default function UserSettings({ onClose }) {
             </p>
             <div className={styles.buttonGroup}>
               <button className={styles.dangerBtn}>Disable Account</button>
-              <button className={styles.dangerGhostBtn}>Delete Account</button>
+              <button className={styles.dangerGhostBtn} onClick={() => setShowDeleteConfirm(true)}>Delete Account</button>
             </div>
           </div>
         </div>
@@ -176,6 +212,43 @@ export default function UserSettings({ onClose }) {
           <span className={styles.escText}>ESC</span>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>Delete Account</h3>
+            <p className={styles.modalText}>
+              Are you sure you want to delete your account? This action cannot be undone.
+            </p>
+            {deleteError && <div className={styles.errorText}>{deleteError}</div>}
+            <div className={styles.modalActions}>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => { setShowDeleteConfirm(false); setDeleteError(""); }}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.confirmDeleteBtn}
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete Account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className={styles.successToast}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          Account deleted successfully! Redirecting...
+        </div>
+      )}
     </div>
   );
 }
