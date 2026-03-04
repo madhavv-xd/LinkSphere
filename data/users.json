@@ -30,9 +30,40 @@
     "password": "12345678"
   },
   {
-    "id": 1772610378267,
-    "username": "ish.preet02",
-    "email": "ishpreetsingh@gmail.com",
-    "password": "123456"
+    "id": 1772604501548,
+    "username": "Mohit",
+    "email": "mohittoor714@gmail.com",
+    "password": "12345678"
+  },
+  {
+    "id": 1772605014246,
+    "username": "madhavi",
+    "email": "mohittoor7141@gmail.com",
+    "password": "12345678"
+  },
+  {
+    "id": 1772605128955,
+    "username": "kansh",
+    "email": "kansh123@gmail.com",
+    "password": "pop,.098"
+  },
+  {
+    "id": 1772610625541,
+    "username": "Vanshika",
+    "email": "mohittoor108@gmail.com",
+    "password": "pop,.098"
+  },
+  {
+    "id": 1772633511279,
+    "username": "Ishu123",
+    "email": "ishu123@gmail.com",
+    "password": "ishukigirlfriendnibanri"
+  },
+  {
+    "id": 1772644923002,
+    "username": "David",
+    "email": "david123@gmail.com",
+    "dob": "2025-03-04",
+    "password": "davidismyfriend"
   }
 ]

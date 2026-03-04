@@ -21,21 +21,22 @@
     ]
   },
   {
-    "id": 1772610600375,
-    "name": "ish.preet02's server",
-    "inviteCode": "e3fea028",
-    "ownerId": 1772610378267,
+    "id": 1772612975590,
+    "name": "Vanshika's server",
+    "inviteCode": "41563df2",
+    "ownerId": 1772610625541,
     "members": [
-      1772610378267
+      1772610625541,
+      1772605128955
     ],
     "channels": [
       {
-        "id": "ch_1772610600375_1",
+        "id": "ch_1772612975590_1",
         "name": "general",
         "type": "text"
       },
       {
-        "id": "ch_1772610600375_2",
+        "id": "ch_1772612975590_2",
         "name": "random",
         "type": "text"
       }
