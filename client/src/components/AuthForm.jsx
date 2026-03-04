@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import Logo from "./Logo";
 import styles from "./AuthForm.module.css";
 
 export default function AuthForm({
@@ -30,7 +31,7 @@ export default function AuthForm({
       </div>
 
       <div className={styles.card}>
-        <span className={styles.brandMark}>◈</span>
+        <Logo size={28} light />
         <h1 className={styles.title}>{title}</h1>
         <p className={styles.subtitle}>{subtitle}</p>
 

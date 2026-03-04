@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import Logo from "../components/Logo";
 import styles from "./Landing.module.css";
 
 const COLLABORATORS = [
@@ -282,7 +283,7 @@ export default function Landing() {
 
           {/* Col 1 – Brand + Social */}
           <div className={styles.footerBrand}>
-            <span className={styles.footerLogo}>◈ LinkSphere</span>
+            <span className={styles.footerLogo}><Logo size={20} light /></span>
             <p className={styles.footerTagline}>
               Real-time communication platform for communities, gamers, and friends.
             </p>
@@ -307,8 +308,8 @@ export default function Landing() {
           <div className={styles.footerCol}>
             <h4 className={styles.footerColHeading}>Contact</h4>
             <ul className={styles.footerLinks}>
-              <li><a href="mailto:vanshdhot2544@gmail.com">vanshdhot2544@gmail.com</a></li>
-              <li><span>📍 Patiala, Punjab, India</span></li>
+              <li><a href="mailto:mega89956@gmail.com">linkspherexco@gmail.com</a></li>
+              <li><span> Patiala, Punjab, India</span></li>
             </ul>
           </div>
 
