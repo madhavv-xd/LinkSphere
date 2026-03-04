@@ -9,7 +9,117 @@ export default function UserSettings({ onClose }) {
 
   // Mask email for display
   const [showEmail, setShowEmail] = useState(false);
-  const maskedEmail = email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(b.length) + c);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+  // User details state (so we can update them in the UI without refresh)
+  const [currentUsername, setCurrentUsername] = useState(username);
+  const [currentEmail, setCurrentEmail] = useState(email);
+
+  // Edit fields state
+  const [editMode, setEditMode] = useState(null); // 'username' | 'email' | null
+  const [editValue, setEditValue] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState("");
+
+  const maskedEmail = currentEmail.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(b.length) + c);
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setEditError("");
+    setEditLoading(true);
+
+    try {
+      // 1. Verify password via login endpoint (since there's no dedicated verify route)
+      const cachedEmail = localStorage.getItem("email");
+      const loginRes = await fetch("http://localhost:8000/api/users/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cachedEmail, password: editPassword })
+      });
+
+      if (!loginRes.ok) {
+        setEditError("Password does not match.");
+        setEditLoading(false);
+        return;
+      }
+
+      // 2. Perform the update
+      const token = localStorage.getItem("token");
+      const userId = localStorage.getItem("userId");
+      const body = {};
+      if (editMode === 'username') body.username = editValue;
+      if (editMode === 'email') body.email = editValue;
+
+      const updateRes = await fetch(`http://localhost:8000/api/users/${userId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (updateRes.ok) {
+        if (editMode === 'username') {
+          localStorage.setItem("username", editValue);
+          setCurrentUsername(editValue);
+        }
+        if (editMode === 'email') {
+          localStorage.setItem("email", editValue);
+          setCurrentEmail(editValue);
+        }
+
+        // Show lightweight toast or just close
+        setEditMode(null);
+        setEditValue("");
+        setEditPassword("");
+      } else {
+        const json = await updateRes.json();
+        setEditError(json.error || "Failed to update profile.");
+      }
+    } catch (err) {
+      console.error(err);
+      setEditError("Could not connect to server.");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    setDeleteError("");
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+
+    try {
+      const res = await fetch(`http://localhost:8000/api/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        setShowDeleteConfirm(false);
+        setShowSuccessToast(true);
+        setTimeout(() => {
+          handleLogout();
+        }, 2000);
+      } else {
+        const json = await res.json();
+        setDeleteError(json.error || "Failed to delete account");
+      }
+    } catch (err) {
+      console.error("Error deleting account:", err);
+      setDeleteError("Could not connect to server.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -40,10 +150,10 @@ export default function UserSettings({ onClose }) {
           {/* Top Profile Snippet */}
           <div className={styles.profileSnippet}>
             <div className={styles.snippetAvatar}>
-              {username.charAt(0).toUpperCase()}
+              {currentUsername.charAt(0).toUpperCase()}
             </div>
             <div className={styles.snippetInfo}>
-              <div className={styles.snippetName}>{username}</div>
+              <div className={styles.snippetName}>{currentUsername}</div>
               <div className={styles.editProfileLink}>
                 Edit Profile <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
               </div>
@@ -97,11 +207,11 @@ export default function UserSettings({ onClose }) {
 
             <div className={styles.cardHeader}>
               <div className={styles.cardAvatarWrapper} style={{ background: '#5865f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.2rem', fontWeight: 700 }}>
-                {username.charAt(0).toUpperCase()}
+                {currentUsername.charAt(0).toUpperCase()}
               </div>
 
               <div className={styles.cardUserInfo}>
-                <span className={styles.cardName}>{username}</span>
+                <span className={styles.cardName}>{currentUsername}</span>
               </div>
 
               <button className={styles.editProfileBtn}>Edit User Profile</button>
@@ -111,30 +221,30 @@ export default function UserSettings({ onClose }) {
               <div className={styles.infoRow}>
                 <div>
                   <div className={styles.infoLabel}>Display Name</div>
-                  <div className={styles.infoValue}>{username}</div>
+                  <div className={styles.infoValue}>{currentUsername}</div>
                 </div>
-                <button className={styles.editBtn}>Edit</button>
+                <button className={styles.editBtn} onClick={() => { setEditMode('username'); setEditValue(currentUsername); setEditError(''); setEditPassword(''); }}>Edit</button>
               </div>
 
               <div className={styles.infoRow}>
                 <div>
                   <div className={styles.infoLabel}>Username</div>
-                  <div className={styles.infoValue}>{username}</div>
+                  <div className={styles.infoValue}>{currentUsername}</div>
                 </div>
-                <button className={styles.editBtn}>Edit</button>
+                <button className={styles.editBtn} onClick={() => { setEditMode('username'); setEditValue(currentUsername); setEditError(''); setEditPassword(''); }}>Edit</button>
               </div>
 
               <div className={styles.infoRow}>
                 <div>
                   <div className={styles.infoLabel}>Email</div>
                   <div className={styles.infoValue}>
-                    {showEmail ? email : maskedEmail}{' '}
+                    {showEmail ? currentEmail : maskedEmail}{' '}
                     <span className={styles.revealText} onClick={() => setShowEmail(!showEmail)} style={{ cursor: 'pointer' }}>
                       {showEmail ? 'Hide' : 'Reveal'}
                     </span>
                   </div>
                 </div>
-                <button className={styles.editBtn}>Edit</button>
+                <button className={styles.editBtn} onClick={() => { setEditMode('email'); setEditValue(currentEmail); setEditError(''); setEditPassword(''); }}>Edit</button>
               </div>
 
               <div className={styles.infoRow}>
@@ -163,7 +273,7 @@ export default function UserSettings({ onClose }) {
             </p>
             <div className={styles.buttonGroup}>
               <button className={styles.dangerBtn}>Disable Account</button>
-              <button className={styles.dangerGhostBtn}>Delete Account</button>
+              <button className={styles.dangerGhostBtn} onClick={() => setShowDeleteConfirm(true)}>Delete Account</button>
             </div>
           </div>
         </div>
@@ -176,6 +286,101 @@ export default function UserSettings({ onClose }) {
           <span className={styles.escText}>ESC</span>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>Delete Account</h3>
+            <p className={styles.modalText}>
+              Are you sure you want to delete your account? This action cannot be undone.
+            </p>
+            {deleteError && <div className={styles.errorText}>{deleteError}</div>}
+            <div className={styles.modalActions}>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => { setShowDeleteConfirm(false); setDeleteError(""); }}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.confirmDeleteBtn}
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete Account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Form Modal (Username / Email) */}
+      {editMode && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>
+              {editMode === 'username' ? 'Change your Username' : 'Enter an email address'}
+            </h3>
+            <p className={styles.modalText} style={{ marginBottom: '20px' }}>
+              Enter a new {editMode} and your existing password.
+            </p>
+            <form onSubmit={handleUpdate}>
+              <div className={styles.formGroup}>
+                <label className={styles.inputLabel}>{editMode.toUpperCase()}</label>
+                <input
+                  type={editMode === 'email' ? 'email' : 'text'}
+                  className={styles.inputField}
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.inputLabel}>CURRENT PASSWORD</label>
+                <input
+                  type="password"
+                  className={styles.inputField}
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              {editError && <div className={styles.errorText}>{editError}</div>}
+
+              <div className={styles.modalActions} style={{ marginTop: '24px' }}>
+                <button
+                  type="button"
+                  className={styles.cancelLinkBtn}
+                  onClick={() => { setEditMode(null); setEditError(""); }}
+                  disabled={editLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={styles.confirmEditBtn}
+                  disabled={editLoading || !editValue || !editPassword}
+                >
+                  {editLoading ? "Saving..." : "Done"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className={styles.successToast}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          Account deleted successfully! Redirecting...
+        </div>
+      )}
     </div>
   );
 }
