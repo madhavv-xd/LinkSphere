@@ -62,5 +62,27 @@
         "type": "text"
       }
     ]
+  },
+  {
+    "id": 1772651656573,
+    "name": "bob's server",
+    "inviteCode": "db8840dd",
+    "ownerId": 2,
+    "members": [
+      2,
+      1772648259005
+    ],
+    "channels": [
+      {
+        "id": "ch_1772651656574_1",
+        "name": "general",
+        "type": "text"
+      },
+      {
+        "id": "ch_1772651656574_2",
+        "name": "random",
+        "type": "text"
+      }
+    ]
   }
 ]

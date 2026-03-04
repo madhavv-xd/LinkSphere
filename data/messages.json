@@ -88,5 +88,41 @@
     "type": "system",
     "content": "Vanshika created the server. Welcome!",
     "timestamp": "2026-03-04T19:08:39.285Z"
+  },
+  {
+    "id": 1772651656576,
+    "serverId": 1772651656573,
+    "channelId": "ch_1772651656574_1",
+    "type": "system",
+    "content": "bob created the server. Welcome!",
+    "timestamp": "2026-03-04T19:14:16.576Z"
+  },
+  {
+    "id": 1772651749787,
+    "serverId": 1772651656573,
+    "channelId": "ch_1772651656574_1",
+    "authorId": 2,
+    "authorName": "bob",
+    "content": "hi",
+    "type": "user",
+    "timestamp": "2026-03-04T19:15:49.787Z"
+  },
+  {
+    "id": 1772651777888,
+    "serverId": 1772651656573,
+    "channelId": "ch_1772651656574_1",
+    "type": "system",
+    "content": "Vansh joined the server. Welcome!",
+    "timestamp": "2026-03-04T19:16:17.888Z"
+  },
+  {
+    "id": 1772651795032,
+    "serverId": 1772651656573,
+    "channelId": "ch_1772651656574_1",
+    "authorId": 1772648259005,
+    "authorName": "Vansh",
+    "content": "hi, Happy Holi",
+    "type": "user",
+    "timestamp": "2026-03-04T19:16:35.032Z"
   }
 ]
