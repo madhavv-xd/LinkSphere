@@ -65,5 +65,12 @@
     "email": "david123@gmail.com",
     "dob": "2025-03-04",
     "password": "davidismyfriend"
+  },
+  {
+    "id": 1772648259005,
+    "username": "Vansh",
+    "email": "vansh@gmail.com",
+    "dob": "2005-02-06",
+    "password": "456"
   }
 ]
