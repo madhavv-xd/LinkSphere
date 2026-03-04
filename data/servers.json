@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1772584644419,
+    "name": "madhav's server",
+    "inviteCode": "95222de6",
+    "ownerId": 1772577082796,
+    "members": [
+      1772577082796
+    ],
+    "channels": [
+      {
+        "id": "ch_1772584644419_1",
+        "name": "general",
+        "type": "text"
+      },
+      {
+        "id": "ch_1772584644419_2",
+        "name": "random",
+        "type": "text"
+      }
+    ]
+  }
+]
