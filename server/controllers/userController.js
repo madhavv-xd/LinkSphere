@@ -26,11 +26,7 @@ const saveUsers = (users) => {
   fs.writeFileSync(usersFilePath, JSON.stringify(users, null, 2));
 };
 
-
-// ─── Controllers ─────────────────────────────────────────────────────────────
-
-// POST /api/users/signup
-const signup = (req, res) => {
+const signup = async (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
@@ -58,8 +54,7 @@ const signup = (req, res) => {
 };
 
 
-// POST /api/users/login
-const login = (req, res) => {
+const login = async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -82,7 +77,7 @@ const login = (req, res) => {
   const token = jwt.sign(
     { id: user.id, username: user.username },
     SECRET,
-    { expiresIn: "1h" }
+    { expiresIn: "5s" }
   );
 
   res.status(200).json({
@@ -93,12 +88,11 @@ const login = (req, res) => {
 };
 
 
-// GET /api/users/:id  (protected)
 const getUser = (req, res) => {
   const { id } = req.params;
   const users = getUsers();
+  const user = users.find(user => user.id == id);
 
-  const user = users.find((user) => user.id == id);
   if (!user) {
     return res.status(404).json({ error: "User not found" });
   }
