@@ -30,6 +30,12 @@ export default function AppPage() {
   const username = user?.username || "User";
   const userId = user?.id || 0;
 
+  // ── Refs ──
+  const chatEndRef = useRef(null);
+  const pollRef = useRef(null);
+  const userPopupRef = useRef(null);
+  const mainAreaRef = useRef(null); // Ref for tracking cursor position
+
   // ── State ──
   const [servers, setServers] = useState([]);
   const [activeServer, setActiveServer] = useState("home");
@@ -41,6 +47,11 @@ export default function AppPage() {
   const [friendInput, setFriendInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
+  
+  // Channel Creation State
+  const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
+  const [newChannelName, setNewChannelName] = useState("");
+
   const [showServerMenu, setShowServerMenu] = useState(false);
   const [toast, setToast] = useState("");
   const [showUserPopup, setShowUserPopup] = useState(false);
@@ -48,13 +59,83 @@ export default function AppPage() {
   const [isDeafened, setIsDeafened] = useState(false);
   const [currentStatus, setCurrentStatus] = useState('online');
 
-  const chatEndRef = useRef(null);
-  const pollRef = useRef(null);
-  const userPopupRef = useRef(null);
+  // ── Interaction Logic ──
+  const handleMouseMove = (e) => {
+    if (!mainAreaRef.current) return;
+    const { left, top } = mainAreaRef.current.getBoundingClientRect();
+    const x = e.clientX - left;
+    const y = e.clientY - top;
+    
+    // Set CSS variables for the dynamic glow effect
+    mainAreaRef.current.style.setProperty('--mouse-x', `${x}px`);
+    mainAreaRef.current.style.setProperty('--mouse-y', `${y}px`);
+  };
 
   const selectStatus = (key) => {
     setCurrentStatus(key);
     setShowStatusSubmenu(false);
+  };
+
+  // Handle Create Channel
+  const handleCreateChannel = async (e) => {
+    e.preventDefault();
+    if (!newChannelName.trim()) return;
+
+    try {
+      const res = await fetch(`${API}/servers/${activeServer}/channels`, {
+        method: "POST",
+        headers: authHeaders(token),
+        body: JSON.stringify({ name: newChannelName }),
+      });
+
+      if (res.ok) {
+        setNewChannelName("");
+        setIsChannelModalOpen(false);
+        // Re-fetch server data to show the new channel in list
+        const resData = await fetch(`${API}/servers/${activeServer}`, { headers: authHeaders(token) });
+        if (resData.ok) {
+          const data = await resData.json();
+          setServerData(data);
+        }
+        setToast("Channel created!");
+        setTimeout(() => setToast(""), 2000);
+      }
+    } catch (err) {
+      console.error("Failed to create channel:", err);
+    }
+  };
+
+  // NEW: Handle Delete Channel
+  const handleDeleteChannel = async (e, channelId) => {
+    e.stopPropagation(); // Prevent switching to the channel when clicking delete
+    if (!serverData || serverData.ownerId !== userId) return;
+    if (!window.confirm("Are you sure you want to delete this channel?")) return;
+
+    try {
+      const res = await fetch(`${API}/servers/${activeServer}/channels/${channelId}`, {
+        method: "DELETE",
+        headers: authHeaders(token),
+      });
+
+      if (res.ok) {
+        if (activeChannel === channelId) {
+          setActiveChannel(null);
+        }
+        // Re-fetch server data to update the UI
+        const resData = await fetch(`${API}/servers/${activeServer}`, { headers: authHeaders(token) });
+        if (resData.ok) {
+          const data = await resData.json();
+          setServerData(data);
+        }
+        setToast("Channel deleted!");
+        setTimeout(() => setToast(""), 2000);
+      } else {
+        const errorData = await res.json();
+        alert(errorData.error || "Failed to delete channel");
+      }
+    } catch (err) {
+      console.error("Failed to delete channel:", err);
+    }
   };
 
 
@@ -115,7 +196,7 @@ export default function AppPage() {
     };
 
     fetchServerData();
-  }, [activeServer]);
+  }, [activeServer, token]);
 
   // ── Fetch messages for active channel + poll every 3s ──
   const fetchMessages = useCallback(async () => {
@@ -175,6 +256,7 @@ export default function AppPage() {
 
   // ── Server created callback ──
   const onServerCreated = () => {
+    setIsServerModalOpen(false); 
     fetchServers();
   };
 
@@ -346,7 +428,6 @@ export default function AppPage() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
           )}
         </button>
-        {/* Headphone / Deafen button */}
         <button
           type="button"
           className={`${styles.userIconBtn} ${isDeafened ? styles.userIconBtnDanger : ""}`}
@@ -369,7 +450,7 @@ export default function AppPage() {
           )}
         </button>
         <button type="button" className={styles.userIconBtn} title="User Settings" onClick={() => setShowSettings(true)}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         </button>
       </div>
     </footer>
@@ -393,12 +474,14 @@ export default function AppPage() {
 
         <div className={styles.divider} />
 
+        {/* --- DYNAMIC SERVER ICONS --- */}
         {servers.map((server) => (
           <button
             key={server.id}
             type="button"
             title={server.name}
             className={`${styles.serverIcon} ${activeServer === server.id ? styles.activeServer : ""}`}
+            style={{ backgroundColor: server.color || "#5865f2" }}
             onClick={() => setActiveServer(server.id)}
           >
             {server.name.charAt(0).toUpperCase()}
@@ -477,6 +560,16 @@ export default function AppPage() {
             <section className={styles.scrollSection}>
               <div className={styles.categoryHeader}>
                 <span>Text Channels</span>
+                {/* NEW: Add Channel Button - only for server owner */}
+                {serverData?.ownerId === userId && (
+                  <button 
+                    className={styles.addChannelBtn} 
+                    onClick={() => setIsChannelModalOpen(true)}
+                    title="Create Channel"
+                  >
+                    +
+                  </button>
+                )}
               </div>
               {channels.map((ch) => (
                 <button
@@ -488,6 +581,21 @@ export default function AppPage() {
                     <span className={styles.hash}>#</span>
                     {ch.name}
                   </div>
+                  {/* NEW: Delete Channel Button - only for server owner */}
+                  {serverData?.ownerId === userId && (
+                    <div className={styles.channelRight}>
+                      <svg 
+                        onClick={(e) => handleDeleteChannel(e, ch.id)}
+                        className={styles.channelDeleteIcon}
+                        width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      >
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                      </svg>
+                    </div>
+                  )}
                 </button>
               ))}
             </section>
@@ -496,8 +604,14 @@ export default function AppPage() {
         <UserInfoBar />
       </aside>
 
-      {/* 3. MAIN AREA */}
-      <main className={styles.mainArea}>
+      {/* 3. MAIN AREA — INTEGRATED REF AND GLOW LAYER */}
+      <main 
+        className={styles.mainArea} 
+        ref={mainAreaRef} 
+        onMouseMove={handleMouseMove}
+      >
+        <div className={styles.dynamicGlow}></div> {/* Dynamic Background Layer */}
+        
         {activeServer === "home" ? (
           <>
             <header className={styles.topHeader}>
@@ -657,11 +771,36 @@ export default function AppPage() {
       </main>
 
       {showSettings && <UserSettings onClose={() => setShowSettings(false)} />}
+      
+      {/* SERVER MODAL GATEKEEPER */}
       {isServerModalOpen && (
         <CreateServerModal
           onClose={() => setIsServerModalOpen(false)}
           onCreated={onServerCreated}
         />
+      )}
+
+      {/* CHANNEL MODAL GATEKEEPER */}
+      {isChannelModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3>Create Text Channel</h3>
+            <form onSubmit={handleCreateChannel}>
+              <input 
+                type="text" 
+                placeholder="new-channel" 
+                value={newChannelName} 
+                onChange={(e) => setNewChannelName(e.target.value)} 
+                className={styles.modalInput}
+                autoFocus
+              />
+              <div className={styles.modalActions}>
+                <button type="button" onClick={() => setIsChannelModalOpen(false)}>Cancel</button>
+                <button type="submit" className={styles.createBtn} disabled={!newChannelName.trim()}>Create Channel</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Toast notification */}
