@@ -47,6 +47,11 @@ export default function AppPage() {
   const [friendInput, setFriendInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
+  
+  // Channel Creation State
+  const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
+  const [newChannelName, setNewChannelName] = useState("");
+
   const [showServerMenu, setShowServerMenu] = useState(false);
   const [toast, setToast] = useState("");
   const [showUserPopup, setShowUserPopup] = useState(false);
@@ -69,6 +74,68 @@ export default function AppPage() {
   const selectStatus = (key) => {
     setCurrentStatus(key);
     setShowStatusSubmenu(false);
+  };
+
+  // Handle Create Channel
+  const handleCreateChannel = async (e) => {
+    e.preventDefault();
+    if (!newChannelName.trim()) return;
+
+    try {
+      const res = await fetch(`${API}/servers/${activeServer}/channels`, {
+        method: "POST",
+        headers: authHeaders(token),
+        body: JSON.stringify({ name: newChannelName }),
+      });
+
+      if (res.ok) {
+        setNewChannelName("");
+        setIsChannelModalOpen(false);
+        // Re-fetch server data to show the new channel in list
+        const resData = await fetch(`${API}/servers/${activeServer}`, { headers: authHeaders(token) });
+        if (resData.ok) {
+          const data = await resData.json();
+          setServerData(data);
+        }
+        setToast("Channel created!");
+        setTimeout(() => setToast(""), 2000);
+      }
+    } catch (err) {
+      console.error("Failed to create channel:", err);
+    }
+  };
+
+  // NEW: Handle Delete Channel
+  const handleDeleteChannel = async (e, channelId) => {
+    e.stopPropagation(); // Prevent switching to the channel when clicking delete
+    if (!serverData || serverData.ownerId !== userId) return;
+    if (!window.confirm("Are you sure you want to delete this channel?")) return;
+
+    try {
+      const res = await fetch(`${API}/servers/${activeServer}/channels/${channelId}`, {
+        method: "DELETE",
+        headers: authHeaders(token),
+      });
+
+      if (res.ok) {
+        if (activeChannel === channelId) {
+          setActiveChannel(null);
+        }
+        // Re-fetch server data to update the UI
+        const resData = await fetch(`${API}/servers/${activeServer}`, { headers: authHeaders(token) });
+        if (resData.ok) {
+          const data = await resData.json();
+          setServerData(data);
+        }
+        setToast("Channel deleted!");
+        setTimeout(() => setToast(""), 2000);
+      } else {
+        const errorData = await res.json();
+        alert(errorData.error || "Failed to delete channel");
+      }
+    } catch (err) {
+      console.error("Failed to delete channel:", err);
+    }
   };
 
 
@@ -150,6 +217,7 @@ export default function AppPage() {
 
   useEffect(() => {
     fetchMessages();
+    // Poll every 3 seconds
     pollRef.current = setInterval(fetchMessages, 3000);
     return () => clearInterval(pollRef.current);
   }, [fetchMessages]);
@@ -251,18 +319,22 @@ export default function AppPage() {
   // ── User Info Bar ──
   const UserInfoBar = () => (
     <footer className={styles.userInfo} style={{ position: 'relative' }}>
+      {/* User Profile Popup */}
       {showUserPopup && (
         <div ref={userPopupRef} className={styles.userPopup}>
+          {/* Banner + Avatar */}
           <div className={styles.userPopupBanner}>
             <div className={styles.userPopupAvatar}>
               {username.charAt(0).toUpperCase()}
               <div className={styles.userPopupStatusDot}></div>
             </div>
           </div>
+          {/* Name */}
           <div className={styles.userPopupNames}>
             <div className={styles.userPopupDisplayName}>{username}</div>
             <div className={styles.userPopupUsername}>{username.toLowerCase().replace(/\s/g, '_')}</div>
           </div>
+          {/* Actions */}
           <div className={styles.userPopupActions}>
             <button
               className={styles.userPopupItem}
@@ -378,7 +450,7 @@ export default function AppPage() {
           )}
         </button>
         <button type="button" className={styles.userIconBtn} title="User Settings" onClick={() => setShowSettings(true)}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         </button>
       </div>
     </footer>
@@ -488,6 +560,16 @@ export default function AppPage() {
             <section className={styles.scrollSection}>
               <div className={styles.categoryHeader}>
                 <span>Text Channels</span>
+                {/* NEW: Add Channel Button - only for server owner */}
+                {serverData?.ownerId === userId && (
+                  <button 
+                    className={styles.addChannelBtn} 
+                    onClick={() => setIsChannelModalOpen(true)}
+                    title="Create Channel"
+                  >
+                    +
+                  </button>
+                )}
               </div>
               {channels.map((ch) => (
                 <button
@@ -499,6 +581,21 @@ export default function AppPage() {
                     <span className={styles.hash}>#</span>
                     {ch.name}
                   </div>
+                  {/* NEW: Delete Channel Button - only for server owner */}
+                  {serverData?.ownerId === userId && (
+                    <div className={styles.channelRight}>
+                      <svg 
+                        onClick={(e) => handleDeleteChannel(e, ch.id)}
+                        className={styles.channelDeleteIcon}
+                        width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      >
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                      </svg>
+                    </div>
+                  )}
                 </button>
               ))}
             </section>
@@ -681,6 +778,29 @@ export default function AppPage() {
           onClose={() => setIsServerModalOpen(false)}
           onCreated={onServerCreated}
         />
+      )}
+
+      {/* CHANNEL MODAL GATEKEEPER */}
+      {isChannelModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3>Create Text Channel</h3>
+            <form onSubmit={handleCreateChannel}>
+              <input 
+                type="text" 
+                placeholder="new-channel" 
+                value={newChannelName} 
+                onChange={(e) => setNewChannelName(e.target.value)} 
+                className={styles.modalInput}
+                autoFocus
+              />
+              <div className={styles.modalActions}>
+                <button type="button" onClick={() => setIsChannelModalOpen(false)}>Cancel</button>
+                <button type="submit" className={styles.createBtn} disabled={!newChannelName.trim()}>Create Channel</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Toast notification */}
