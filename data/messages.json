@@ -26,103 +26,41 @@
     "timestamp": "2026-03-04T01:37:17.606Z"
   },
   {
-    "id": 1772612975591,
-    "serverId": 1772612975590,
-    "channelId": "ch_1772612975590_1",
-    "type": "system",
-    "content": "Vanshika created the server. Welcome!",
-    "timestamp": "2026-03-04T08:29:35.591Z"
+    "id": 1772667034439,
+    "serverId": 1772584644419,
+    "channelId": "ch_1772584644419_1",
+    "authorId": 1772577082796,
+    "authorName": "madhav",
+    "content": "heloo",
+    "type": "user",
+    "timestamp": "2026-03-04T23:30:34.439Z"
   },
   {
-    "id": 1772613064203,
-    "serverId": 1772612975590,
-    "channelId": "ch_1772612975590_1",
-    "type": "system",
-    "content": "kansh joined the server. Welcome!",
-    "timestamp": "2026-03-04T08:31:04.203Z"
-  },
-  {
-    "id": 1772613072530,
-    "serverId": 1772612975590,
-    "channelId": "ch_1772612975590_1",
-    "authorId": 1772605128955,
-    "authorName": "kansh",
+    "id": 1772669997146,
+    "serverId": 1772584644419,
+    "channelId": "ch_1772584644419_1",
+    "authorId": 1772577082796,
+    "authorName": "madhav",
     "content": "hello",
     "type": "user",
-    "timestamp": "2026-03-04T08:31:12.530Z"
+    "timestamp": "2026-03-05T00:19:57.146Z"
   },
   {
-    "id": 1772613077828,
-    "serverId": 1772612975590,
-    "channelId": "ch_1772612975590_1",
-    "authorId": 1772610625541,
-    "authorName": "Vanshika",
-    "content": "bye",
-    "type": "user",
-    "timestamp": "2026-03-04T08:31:17.828Z"
-  },
-  {
-    "id": 1772613412428,
-    "serverId": 1772612975590,
-    "channelId": "ch_1772612975590_1",
-    "authorId": 1772605128955,
-    "authorName": "kansh",
-    "content": "kaisi hai",
-    "type": "user",
-    "timestamp": "2026-03-04T08:36:52.428Z"
-  },
-  {
-    "id": 1772613429017,
-    "serverId": 1772612975590,
-    "channelId": "ch_1772612975590_1",
-    "authorId": 1772610625541,
-    "authorName": "Vanshika",
-    "content": "ek damm bhadiaaa",
-    "type": "user",
-    "timestamp": "2026-03-04T08:37:09.017Z"
-  },
-  {
-    "id": 1772651319285,
-    "serverId": 1772651319279,
-    "channelId": "ch_1772651319283_1",
+    "id": 1772670313781,
+    "serverId": 1772584644419,
+    "channelId": "ch_1772584644419_1",
     "type": "system",
-    "content": "Vanshika created the server. Welcome!",
-    "timestamp": "2026-03-04T19:08:39.285Z"
+    "content": "madhav joined the server. Welcome!",
+    "timestamp": "2026-03-05T00:25:13.781Z"
   },
   {
-    "id": 1772651656576,
-    "serverId": 1772651656573,
-    "channelId": "ch_1772651656574_1",
-    "type": "system",
-    "content": "bob created the server. Welcome!",
-    "timestamp": "2026-03-04T19:14:16.576Z"
-  },
-  {
-    "id": 1772651749787,
-    "serverId": 1772651656573,
-    "channelId": "ch_1772651656574_1",
-    "authorId": 2,
-    "authorName": "bob",
-    "content": "hi",
+    "id": 1772670318260,
+    "serverId": 1772584644419,
+    "channelId": "ch_1772584644419_1",
+    "authorId": 1772582763264,
+    "authorName": "madhav",
+    "content": "hello",
     "type": "user",
-    "timestamp": "2026-03-04T19:15:49.787Z"
-  },
-  {
-    "id": 1772651777888,
-    "serverId": 1772651656573,
-    "channelId": "ch_1772651656574_1",
-    "type": "system",
-    "content": "Vansh joined the server. Welcome!",
-    "timestamp": "2026-03-04T19:16:17.888Z"
-  },
-  {
-    "id": 1772651795032,
-    "serverId": 1772651656573,
-    "channelId": "ch_1772651656574_1",
-    "authorId": 1772648259005,
-    "authorName": "Vansh",
-    "content": "hi, Happy Holi",
-    "type": "user",
-    "timestamp": "2026-03-04T19:16:35.032Z"
+    "timestamp": "2026-03-05T00:25:18.260Z"
   }
 ]
