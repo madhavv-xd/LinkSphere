@@ -84,5 +84,26 @@
         "type": "text"
       }
     ]
+  },
+  {
+    "id": 1772652225138,
+    "name": "ishpreet_02's server",
+    "inviteCode": "5e1c3187",
+    "ownerId": 1772633511279,
+    "members": [
+      1772633511279
+    ],
+    "channels": [
+      {
+        "id": "ch_1772652225138_1",
+        "name": "general",
+        "type": "text"
+      },
+      {
+        "id": "ch_1772652225138_2",
+        "name": "random",
+        "type": "text"
+      }
+    ]
   }
 ]

@@ -124,5 +124,23 @@
     "content": "hi, Happy Holi",
     "type": "user",
     "timestamp": "2026-03-04T19:16:35.032Z"
+  },
+  {
+    "id": 1772652225142,
+    "serverId": 1772652225138,
+    "channelId": "ch_1772652225138_1",
+    "type": "system",
+    "content": "ishpreet_02 created the server. Welcome!",
+    "timestamp": "2026-03-04T19:23:45.142Z"
+  },
+  {
+    "id": 1772652232158,
+    "serverId": 1772652225138,
+    "channelId": "ch_1772652225138_1",
+    "authorId": 1772633511279,
+    "authorName": "ishpreet_02",
+    "content": "Hello",
+    "type": "user",
+    "timestamp": "2026-03-04T19:23:52.158Z"
   }
 ]
