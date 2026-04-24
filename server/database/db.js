@@ -22,7 +22,7 @@ async function connectDB() {
   await client.db("admin").command({ ping: 1 });
   console.log("✅ Connected to MongoDB Atlas");
 
-  db = client.db(); // uses the default DB from the connection string
+  db = client.db("linksphere"); // use the 'linksphere' named database
   return db;
 }
 

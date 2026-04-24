@@ -1,3 +1,4 @@
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { getDB } = require("../database/db");
 
@@ -20,12 +21,14 @@ const signup = async (req, res) => {
       return res.status(400).json({ error: "User already exists" });
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const newUser = {
       id: Date.now(),
       username,
       email,
       dob,
-      password,
+      password: hashedPassword,
     };
 
     await users.insertOne(newUser);
@@ -52,7 +55,8 @@ const login = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    if (password !== user.password) {
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
@@ -119,7 +123,7 @@ const updateUser = async (req, res) => {
     const updates = {};
     if (username) updates.username = username;
     if (email)    updates.email    = email;
-    if (password) updates.password = password;
+    if (password) updates.password = await bcrypt.hash(password, 10);
     if (dob)      updates.dob      = dob;
 
     await users.updateOne({ id }, { $set: updates });
