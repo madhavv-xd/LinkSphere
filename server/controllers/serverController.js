@@ -411,10 +411,10 @@ const getChannelMessages = async (req, res) => {
 const postMessage = async (req, res) => {
   const id = Number(req.params.id);
   const { channelId } = req.params;
-  const { content } = req.body;
+  const { content, attachmentUrl } = req.body;
 
-  if (!content || !content.trim()) {
-    return res.status(400).json({ error: "Message content is required" });
+  if ((!content || !content.trim()) && !attachmentUrl) {
+    return res.status(400).json({ error: "Message content or attachment is required" });
   }
 
   try {
@@ -440,7 +440,8 @@ const postMessage = async (req, res) => {
       channelId,
       authorId: req.user.id,
       authorName: req.user.username,
-      content: content.trim(),
+      content: content ? content.trim() : "",
+      attachmentUrl: attachmentUrl || null,
       type: "user",
       timestamp: new Date().toISOString(),
     };

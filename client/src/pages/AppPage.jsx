@@ -59,6 +59,12 @@ export default function AppPage() {
   const [isDeafened, setIsDeafened] = useState(false);
   const [currentStatus, setCurrentStatus] = useState('online');
 
+  // Attachment State
+  const [attachmentFile, setAttachmentFile] = useState(null);
+  const [attachmentPreview, setAttachmentPreview] = useState(null);
+  const [isSending, setIsSending] = useState(false);
+  const fileInputRef = useRef(null);
+
   // ── Interaction Logic ──
   const handleMouseMove = (e) => {
     if (!mainAreaRef.current) return;
@@ -230,22 +236,71 @@ export default function AppPage() {
   // ── Send message ──
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!msgInput.trim() || !activeChannel) return;
+    if ((!msgInput.trim() && !attachmentFile) || !activeChannel || isSending) return;
 
     try {
+      setIsSending(true);
+      let finalAttachmentUrl = null;
+
+      // If there's an attachment, upload it first
+      if (attachmentFile) {
+        const formData = new FormData();
+        formData.append("image", attachmentFile);
+
+        const uploadRes = await fetch(`${API}/upload`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`
+            // Do NOT set Content-Type; FormData sets it with boundary
+          },
+          body: formData
+        });
+
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json();
+          alert(`Attachment upload failed: ${errData.error}`);
+          setIsSending(false);
+          return; // Abort sending
+        }
+
+        const uploadData = await uploadRes.json();
+        finalAttachmentUrl = uploadData.url;
+      }
+
       await fetch(
         `${API}/servers/${activeServer}/channels/${activeChannel}/messages`,
         {
           method: "POST",
           headers: authHeaders(token),
-          body: JSON.stringify({ content: msgInput }),
+          body: JSON.stringify({ 
+            content: msgInput,
+            attachmentUrl: finalAttachmentUrl
+          }),
         }
       );
       setMsgInput("");
+      cancelAttachment();
       fetchMessages();
     } catch (err) {
       console.error("Failed to send message:", err);
+    } finally {
+      setIsSending(false);
     }
+  };
+
+  const handleAttachmentChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAttachmentFile(file);
+      setAttachmentPreview(URL.createObjectURL(file));
+    }
+    // reset input so the same file over and over triggers change
+    e.target.value = null;
+  };
+
+  const cancelAttachment = () => {
+    setAttachmentFile(null);
+    setAttachmentPreview(null);
   };
 
   // ── Logout ──
@@ -730,7 +785,12 @@ export default function AppPage() {
                               {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
-                          <p className={styles.msgBody}>{msg.content}</p>
+                          {msg.content && <p className={styles.msgBody}>{msg.content}</p>}
+                          {msg.attachmentUrl && (
+                            <div className={styles.msgAttachmentWrap}>
+                              <img src={msg.attachmentUrl} alt="attachment" className={styles.msgAttachment} />
+                            </div>
+                          )}
                         </div>
                       </div>
                     )
@@ -739,18 +799,37 @@ export default function AppPage() {
                 </div>
 
                 {/* Message input */}
-                <form className={styles.chatInputBar} onSubmit={sendMessage}>
-                  <input
-                    type="text"
-                    className={styles.chatInput}
-                    placeholder={`Message #${activeChannelName}`}
-                    value={msgInput}
-                    onChange={(e) => setMsgInput(e.target.value)}
-                  />
-                  <button type="submit" className={styles.sendBtn} disabled={!msgInput.trim()}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
-                  </button>
-                </form>
+                <div className={styles.chatInputContainer}>
+                  {attachmentPreview && (
+                    <div className={styles.attachmentPreviewWrap}>
+                      <img src={attachmentPreview} alt="preview" className={styles.attachmentPreviewImg} />
+                      <button type="button" className={styles.cancelAttachmentBtn} onClick={cancelAttachment}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                      </button>
+                    </div>
+                  )}
+                  <form className={styles.chatInputBar} onSubmit={sendMessage}>
+                    <input type="file" style={{ display: 'none' }} ref={fileInputRef} onChange={handleAttachmentChange} accept="image/*" />
+                    <button type="button" className={styles.addAttachmentBtn} onClick={() => fileInputRef.current?.click()} disabled={isSending}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    </button>
+                    <input
+                      type="text"
+                      className={styles.chatInput}
+                      placeholder={`Message #${activeChannelName}`}
+                      value={msgInput}
+                      onChange={(e) => setMsgInput(e.target.value)}
+                      disabled={isSending}
+                    />
+                    <button type="submit" className={styles.sendBtn} disabled={(!msgInput.trim() && !attachmentFile) || isSending}>
+                      {isSending ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={styles.spinning}><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
+                      )}
+                    </button>
+                  </form>
+                </div>
               </div>
 
               {/* Members sidebar */}
