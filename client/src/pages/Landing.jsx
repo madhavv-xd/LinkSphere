@@ -289,7 +289,8 @@ export default function Landing() {
           </div>
         </div>
 
-
+        {/* Giant wordmark */}
+        <div className={styles.footerWordmark}>Linksphere</div>
         <div className={styles.footerBottom}>
           <p>© 2025 LinkSphere · Built with Node.js &amp; React</p>
         </div>
