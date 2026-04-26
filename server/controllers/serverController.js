@@ -35,6 +35,7 @@ const createServer = catchAsync(async (req, res) => {
     channels: [
       { id: `ch_${now}_1`, name: "general", type: "text" },
       { id: `ch_${now}_2`, name: "random",  type: "text" },
+      { id: `ch_${now}_3`, name: "general-voice", type: "voice" },
     ],
   });
 
@@ -116,7 +117,7 @@ const updateServer = catchAsync(async (req, res) => {
 // ─── Create Channel ───────────────────────────────────────────────────────────
 const createChannel = catchAsync(async (req, res) => {
   const id = Number(req.params.id);
-  const { name } = req.body;
+  const { name, type = "text" } = req.body;
 
   // Note: name validated by Zod middleware (createChannelSchema)
 
@@ -127,7 +128,7 @@ const createChannel = catchAsync(async (req, res) => {
   const newChannel = {
     id: `ch_${Date.now()}`,
     name: name.trim().toLowerCase().replace(/\s+/g, "-"),
-    type: "text",
+    type: type,
   };
 
   server.channels.push(newChannel);
@@ -169,12 +170,18 @@ const joinServer = catchAsync(async (req, res) => {
   await server.save();
 
   if (server.channels[0]) {
-    await new Message({
+    const welcomeMsg = new Message({
       serverId: server.id,
       channelId: server.channels[0].id,
       type: "system",
       content: `${username} joined the server. Welcome!`,
-    }).save();
+    });
+    await welcomeMsg.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(server.channels[0].id).emit("new_message", welcomeMsg.toObject());
+    }
   }
 
   res.json({ message: "Joined server successfully", server });
@@ -207,12 +214,18 @@ const joinByInvite = catchAsync(async (req, res) => {
   await server.save();
 
   if (server.channels[0]) {
-    await new Message({
+    const welcomeMsg = new Message({
       serverId: server.id,
       channelId: server.channels[0].id,
       type: "system",
       content: `${req.user.username} joined the server. Welcome!`,
-    }).save();
+    });
+    await welcomeMsg.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(server.channels[0].id).emit("new_message", welcomeMsg.toObject());
+    }
   }
 
   res.json({ message: "Joined server successfully", server });
@@ -232,12 +245,18 @@ const leaveServer = catchAsync(async (req, res) => {
   await server.save();
 
   if (server.channels[0]) {
-    await new Message({
+    const leaveMsg = new Message({
       serverId: server.id,
       channelId: server.channels[0].id,
       type: "system",
       content: `${req.user.username} left the server.`,
-    }).save();
+    });
+    await leaveMsg.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(server.channels[0].id).emit("new_message", leaveMsg.toObject());
+    }
   }
 
   res.json({ message: "Left server successfully" });
@@ -296,6 +315,19 @@ const postMessage = catchAsync(async (req, res) => {
   });
 
   await newMessage.save();
+
+  const io = req.app.get("io");
+  if (io) {
+    const author = await User.findOne({ id: req.user.id });
+    const msgObj = newMessage.toObject();
+    const emitPayload = {
+      ...msgObj,
+      authorName: author ? author.username : msgObj.authorName,
+      authorAvatarUrl: author?.avatarUrl || null
+    };
+    io.to(channelId).emit("new_message", emitPayload);
+  }
+
   res.status(201).json(newMessage);
 });
 

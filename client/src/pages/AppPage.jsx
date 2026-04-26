@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { io } from "socket.io-client";
 import { useAuth } from '../context/AuthContext';
 import CreateServerModal from '../components/CreateServerModal';
 import EditServerModal from '../components/EditServerModal';
@@ -37,14 +38,28 @@ export default function AppPage() {
   const userPopupRef = useRef(null);
   const mainAreaRef = useRef(null); // Ref for tracking cursor position
 
+  const [socket, setSocket] = useState(null);
+
+  // Initialize socket
+  useEffect(() => {
+    if (token) {
+      const newSocket = io("http://localhost:8000", {
+        auth: { token },
+      });
+      setSocket(newSocket);
+      return () => newSocket.close();
+    }
+  }, [token]);
+
   // ── State ──
   const [servers, setServers] = useState([]);
   const [activeServer, setActiveServer] = useState("home");
   const [serverData, setServerData] = useState(null); // full server details + members
   const [activeChannel, setActiveChannel] = useState(null);
+  const [activeVoiceChannel, setActiveVoiceChannel] = useState(null);
+  const [voiceRooms, setVoiceRooms] = useState({});
   const [messages, setMessages] = useState([]);
   const [msgInput, setMsgInput] = useState("");
-  const [isMuted, setIsMuted] = useState(true);
   const [friendInput, setFriendInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
@@ -58,7 +73,6 @@ export default function AppPage() {
   const [toast, setToast] = useState("");
   const [showUserPopup, setShowUserPopup] = useState(false);
   const [showStatusSubmenu, setShowStatusSubmenu] = useState(false);
-  const [isDeafened, setIsDeafened] = useState(false);
   const [currentStatus, setCurrentStatus] = useState('online');
 
   // Attachment State
@@ -93,7 +107,7 @@ export default function AppPage() {
       const res = await fetch(`${API}/servers/${activeServer}/channels`, {
         method: "POST",
         headers: authHeaders(token),
-        body: JSON.stringify({ name: newChannelName }),
+        body: JSON.stringify({ name: newChannelName, type: "text" }),
       });
 
       if (res.ok) {
@@ -206,9 +220,22 @@ export default function AppPage() {
   }, [activeServer, fetchServerData]);
 
 
+  // Listen to global voice rooms update
+  useEffect(() => {
+    if (!socket) return;
+    const handleVoiceUpdate = (rooms) => {
+      setVoiceRooms(rooms);
+    };
+    socket.on("voice_rooms_update", handleVoiceUpdate);
+    return () => socket.off("voice_rooms_update", handleVoiceUpdate);
+  }, [socket]);
+
   // ── Fetch messages for active channel + poll every 3s ──
   const fetchMessages = useCallback(async () => {
     if (activeServer === "home" || !activeServer || !activeChannel) return;
+    // Don't fetch messages if it's a voice channel and activeChannel matches
+    const activeChannelObj = serverData?.channels?.find(c => c.id === activeChannel);
+    if (activeChannelObj?.type === "voice") return;
     try {
       const res = await fetch(
         `${API}/servers/${activeServer}/channels/${activeChannel}/messages`,
@@ -225,10 +252,25 @@ export default function AppPage() {
 
   useEffect(() => {
     fetchMessages();
-    // Poll every 3 seconds
-    pollRef.current = setInterval(fetchMessages, 3000);
-    return () => clearInterval(pollRef.current);
-  }, [fetchMessages]);
+
+    if (socket && activeChannel && activeServer !== "home") {
+      socket.emit("join_channel", activeChannel);
+
+      const handleNewMessage = (msg) => {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
+      };
+
+      socket.on("new_message", handleNewMessage);
+
+      return () => {
+        socket.off("new_message", handleNewMessage);
+        socket.emit("leave_channel", activeChannel);
+      };
+    }
+  }, [fetchMessages, socket, activeChannel, activeServer]);
 
   // ── Auto-scroll chat ──
   useEffect(() => {
@@ -274,7 +316,7 @@ export default function AppPage() {
         {
           method: "POST",
           headers: authHeaders(token),
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             content: msgInput,
             attachmentUrl: finalAttachmentUrl
           }),
@@ -282,7 +324,6 @@ export default function AppPage() {
       );
       setMsgInput("");
       cancelAttachment();
-      fetchMessages();
     } catch (err) {
       console.error("Failed to send message:", err);
     } finally {
@@ -371,7 +412,9 @@ export default function AppPage() {
   const channels = serverData?.channels || [];
   const members = serverData?.membersData || [];
   const currentServer = servers.find((s) => s.id === activeServer);
-  const activeChannelName = channels.find((c) => c.id === activeChannel)?.name || "";
+  const activeChannelObj = channels.find((c) => c.id === activeChannel);
+  const activeChannelName = activeChannelObj?.name || "";
+  const isVoiceChannel = activeChannelObj?.type === "voice";
 
   // ── User Info Bar ──
   const UserInfoBar = () => (
@@ -473,39 +516,6 @@ export default function AppPage() {
       </div>
 
       <div className={styles.userControls}>
-        <button
-          type="button"
-          className={`${styles.userIconBtn} ${isMuted ? styles.userIconBtnDanger : ""}`}
-          onClick={() => setIsMuted(!isMuted)}
-          title={isMuted ? "Unmute" : "Mute"}
-        >
-          {isMuted ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-          ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-          )}
-        </button>
-        <button
-          type="button"
-          className={`${styles.userIconBtn} ${isDeafened ? styles.userIconBtnDanger : ""}`}
-          onClick={() => setIsDeafened(!isDeafened)}
-          title={isDeafened ? "Undeafen" : "Deafen"}
-        >
-          {isDeafened ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="1" y1="1" x2="23" y2="23" />
-              <path d="M4.24 4.24A9.9 9.9 0 0 0 2 12v1a3 3 0 0 0 3 3h1a1 1 0 0 0 1-1V11a1 1 0 0 0-1-1H3a9.96 9.96 0 0 1 2.02-5.76" />
-              <path d="M18 11h-1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h1a3 3 0 0 0 3-3v-1a9.96 9.96 0 0 0-2.02-5.76" />
-              <path d="M12 2a9.96 9.96 0 0 1 5.76 2.02" />
-            </svg>
-          ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z" />
-              <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
-            </svg>
-          )}
-        </button>
         <button type="button" className={styles.userIconBtn} title="User Settings" onClick={() => setShowSettings(true)}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path fillRule="evenodd" clipRule="evenodd" d="M19.738 10H22V14H19.739C19.498 14.931 19.1 15.798 18.565 16.564L20.166 18.166L17.336 20.995L15.736 19.396C14.998 19.901 14.167 20.279 13.279 20.505V23H9.279V20.505C8.391 20.28 7.559 19.901 6.822 19.396L5.222 20.995L2.392 18.166L3.993 16.564C3.458 15.798 3.06 14.931 2.819 14H0.5V10H2.819C3.06 9.069 3.458 8.202 3.993 7.436L2.392 5.834L5.222 3.005L6.822 4.604C7.559 4.099 8.391 3.721 9.279 3.495V1H13.279V3.495C14.167 3.72 14.998 4.099 15.736 4.604L17.336 3.005L20.166 5.834L18.565 7.436C19.1 8.202 19.498 9.069 19.738 10ZM11.279 16C13.488 16 15.279 14.209 15.279 12C15.279 9.791 13.488 8 11.279 8C9.07 8 7.279 9.791 7.279 12C7.279 14.209 9.07 16 11.279 16Z" />
@@ -642,7 +652,7 @@ export default function AppPage() {
                   </button>
                 )}
               </div>
-              {channels.map((ch) => (
+              {channels.filter(ch => ch.type === "text" || !ch.type).map((ch) => (
                 <button
                   key={ch.id}
                   className={`${styles.channel} ${activeChannel === ch.id ? styles.activeChannel : ""}`}
@@ -669,7 +679,72 @@ export default function AppPage() {
                   )}
                 </button>
               ))}
+
+              <div className={styles.categoryHeader} style={{ marginTop: 16 }}>
+                <span>Voice Channels</span>
+              </div>
+              {channels.filter(ch => ch.type === "voice").map((ch) => (
+                <div key={ch.id} className={styles.voiceChannelWrapper}>
+                  <button
+                    className={`${styles.channel} ${activeChannel === ch.id ? styles.activeChannel : ""}`}
+                    onClick={() => { setActiveChannel(ch.id); setActiveVoiceChannel(ch.id); }}
+                  >
+                    <div className={styles.channelLeft}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, color: '#80848e' }}>
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                        <line x1="12" x2="12" y1="19" y2="22" />
+                      </svg>
+                      {ch.name}
+                    </div>
+                    {serverData?.ownerId === userId && (
+                      <div className={styles.channelRight}>
+                        <svg
+                          onClick={(e) => handleDeleteChannel(e, ch.id)}
+                          className={styles.channelDeleteIcon}
+                          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                        >
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                  {voiceRooms[ch.id] && voiceRooms[ch.id].length > 0 && (
+                    <div className={styles.voiceUsersList}>
+                      {voiceRooms[ch.id].map(u => (
+                        <div key={u.socketId} className={styles.voiceUserItem}>
+                          <div className={styles.voiceUserAvatar}>
+                            {u.avatarUrl ? <img src={u.avatarUrl} alt="" /> : u.username[0].toUpperCase()}
+                          </div>
+                          <span>{u.username}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
             </section>
+
+            {/* Voice Connected Panel */}
+            {activeVoiceChannel && (
+              <div className={styles.voiceConnectedPanel}>
+                <div className={styles.voiceStatusText}>
+                  <div style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                    Voice Connected
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#949ba4', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {channels.find(c => c.id === activeVoiceChannel)?.name} / {currentServer?.name}
+                  </div>
+                </div>
+                <button className={styles.disconnectBtn} onClick={() => setActiveVoiceChannel(null)} title="Disconnect">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>
+                </button>
+              </div>
+            )}
           </>
         )}
         <UserInfoBar />
@@ -740,7 +815,15 @@ export default function AppPage() {
           <>
             <header className={styles.topHeader}>
               <div className={styles.headerLeft}>
-                <span className={styles.hash} style={{ marginRight: 8 }}>#</span>
+                {isVoiceChannel ? (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 8, color: '#80848e' }}>
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" x2="12" y1="19" y2="22" />
+                  </svg>
+                ) : (
+                  <span className={styles.hash} style={{ marginRight: 8 }}>#</span>
+                )}
                 <span className={styles.headerTitle}>{activeChannelName}</span>
               </div>
               <div className={styles.headerRight}>
@@ -751,7 +834,18 @@ export default function AppPage() {
               </div>
             </header>
 
-            <div className={styles.chatLayout}>
+            {activeVoiceChannel && (
+              <VoiceChannel
+                socket={socket}
+                channelId={activeVoiceChannel}
+                userId={userId}
+                username={username}
+                avatarUrl={user?.avatarUrl}
+                visible={isVoiceChannel && activeChannel === activeVoiceChannel}
+              />
+            )}
+
+            <div className={styles.chatLayout} style={{ display: (isVoiceChannel && activeChannel === activeVoiceChannel) ? 'none' : 'flex' }}>
               {/* Messages area */}
               <div className={styles.chatArea}>
                 <div className={styles.messageList}>
@@ -895,8 +989,9 @@ export default function AppPage() {
       {isChannelModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h3>Create Text Channel</h3>
+            <h3>Create Channel</h3>
             <form onSubmit={handleCreateChannel}>
+
               <input
                 type="text"
                 placeholder="new-channel"
