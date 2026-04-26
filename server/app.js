@@ -7,6 +7,7 @@ require("./config/passport"); // loads the Google OAuth strategy
 const userRoutes = require("./routes/userRoutes");
 const serverRoutes = require("./routes/serverRoutes");
 const authRoutes = require("./routes/authRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
 
 const app = express();
 
@@ -24,11 +25,10 @@ app.use(passport.session());
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use("/api/users", userRoutes);
 app.use("/api/servers", serverRoutes);
-app.use("/api/auth", authRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "LinkSphere server is running" });
 });
 
-module.exports = app;
+module.exports = app;

@@ -18,7 +18,7 @@ const generateInviteCode = () => crypto.randomBytes(4).toString("hex");
 
 // ─── Create Server ────────────────────────────────────────────────────────────
 const createServer = async (req, res) => {
-  const { name } = req.body;
+  const { name, iconUrl } = req.body;
   const userId = req.user.id;
   const username = req.user.username;
 
@@ -34,6 +34,7 @@ const createServer = async (req, res) => {
     const newServer = {
       id: now,
       name: name.trim(),
+      iconUrl: iconUrl || null,
       inviteCode: generateInviteCode(),
       ownerId: userId,
       members: [userId],
@@ -101,7 +102,7 @@ const getServer = async (req, res) => {
 
     const membersWithNames = server.members.map((memberId) => {
       const user = memberDocs.find((u) => u.id === memberId);
-      return { id: memberId, username: user ? user.username : "Unknown" };
+      return { id: memberId, username: user ? user.username : "Unknown", avatarUrl: user?.avatarUrl || null };
     });
 
     res.json({ ...server, membersData: membersWithNames });
@@ -392,7 +393,11 @@ const getChannelMessages = async (req, res) => {
     const messagesWithCurrentNames = channelMessages.map((msg) => {
       if (msg.type === "system") return msg;
       const author = authorDocs.find((u) => u.id === msg.authorId);
-      return { ...msg, authorName: author ? author.username : msg.authorName };
+      return { 
+          ...msg, 
+          authorName: author ? author.username : msg.authorName,
+          authorAvatarUrl: author?.avatarUrl || null
+      };
     });
 
     res.json(messagesWithCurrentNames);
@@ -406,10 +411,10 @@ const getChannelMessages = async (req, res) => {
 const postMessage = async (req, res) => {
   const id = Number(req.params.id);
   const { channelId } = req.params;
-  const { content } = req.body;
+  const { content, attachmentUrl } = req.body;
 
-  if (!content || !content.trim()) {
-    return res.status(400).json({ error: "Message content is required" });
+  if ((!content || !content.trim()) && !attachmentUrl) {
+    return res.status(400).json({ error: "Message content or attachment is required" });
   }
 
   try {
@@ -435,7 +440,8 @@ const postMessage = async (req, res) => {
       channelId,
       authorId: req.user.id,
       authorName: req.user.username,
-      content: content.trim(),
+      content: content ? content.trim() : "",
+      attachmentUrl: attachmentUrl || null,
       type: "user",
       timestamp: new Date().toISOString(),
     };

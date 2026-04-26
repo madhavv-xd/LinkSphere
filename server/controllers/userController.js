@@ -76,7 +76,7 @@ const login = async (req, res) => {
     res.status(200).json({
       message: "Login successful",
       token,
-      user: { id: user.id, username: user.username, email: user.email, dob: user.dob, hasPassword: !!user.password },
+      user: { id: user.id, username: user.username, email: user.email, dob: user.dob, hasPassword: !!user.password, avatarUrl: user.avatarUrl },
     });
   } catch (err) {
     console.error("login error:", err);
@@ -102,6 +102,7 @@ const getUser = async (req, res) => {
       email: user.email,
       dob: user.dob,
       hasPassword: !!user.password,
+      avatarUrl: user.avatarUrl,
     });
   } catch (err) {
     console.error("getUser error:", err);
@@ -117,7 +118,7 @@ const updateUser = async (req, res) => {
     return res.status(403).json({ error: "Unauthorized action" });
   }
 
-  const { username, email, password, dob } = req.body;
+  const { username, email, password, dob, avatarUrl } = req.body;
 
   try {
     const db = getDB();
@@ -133,13 +134,14 @@ const updateUser = async (req, res) => {
     if (email)    updates.email    = email;
     if (password) updates.password = await bcrypt.hash(password, 10);
     if (dob)      updates.dob      = dob;
+    if (avatarUrl) updates.avatarUrl = avatarUrl;
 
     await users.updateOne({ id }, { $set: updates });
 
     const updated = await users.findOne({ id });
     res.status(200).json({
       message: "User updated successfully",
-      user: { id: updated.id, username: updated.username, email: updated.email, dob: updated.dob },
+      user: { id: updated.id, username: updated.username, email: updated.email, dob: updated.dob, avatarUrl: updated.avatarUrl },
     });
   } catch (err) {
     console.error("updateUser error:", err);

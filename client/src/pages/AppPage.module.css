@@ -837,6 +837,19 @@
   word-break: break-word;
 }
 
+.msgAttachmentWrap {
+  margin-top: 8px;
+}
+
+.msgAttachment {
+  max-width: 400px;
+  max-height: 350px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+}
+
 /* System message */
 .systemMsg {
   display: flex;
@@ -854,11 +867,80 @@
 }
 
 /* Chat input */
-.chatInputBar {
+.chatInputContainer {
+  display: flex;
+  flex-direction: column;
   padding: 0 20px 20px;
+}
+
+.attachmentPreviewWrap {
+  position: relative;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  width: max-content;
+  max-width: 100%;
+}
+
+.attachmentPreviewImg {
+  max-height: 150px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.cancelAttachmentBtn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: transform 0.15s;
+}
+
+.cancelAttachmentBtn:hover {
+  transform: scale(1.1);
+}
+
+.chatInputBar {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.addAttachmentBtn {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.addAttachmentBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.addAttachmentBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .chatInput {
@@ -1501,4 +1583,12 @@
   color: var(--danger);
   background: rgba(239, 68, 68, 0.1);
   transform: scale(1.1);
+}
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+.spinning {
+  animation: spin 1s linear infinite;
 }
