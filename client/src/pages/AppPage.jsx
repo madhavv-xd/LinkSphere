@@ -47,7 +47,7 @@ export default function AppPage() {
   const [friendInput, setFriendInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
-  
+
   // Channel Creation State
   const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
   const [newChannelName, setNewChannelName] = useState("");
@@ -59,13 +59,19 @@ export default function AppPage() {
   const [isDeafened, setIsDeafened] = useState(false);
   const [currentStatus, setCurrentStatus] = useState('online');
 
+  // Attachment State
+  const [attachmentFile, setAttachmentFile] = useState(null);
+  const [attachmentPreview, setAttachmentPreview] = useState(null);
+  const [isSending, setIsSending] = useState(false);
+  const fileInputRef = useRef(null);
+
   // ── Interaction Logic ──
   const handleMouseMove = (e) => {
     if (!mainAreaRef.current) return;
     const { left, top } = mainAreaRef.current.getBoundingClientRect();
     const x = e.clientX - left;
     const y = e.clientY - top;
-    
+
     // Set CSS variables for the dynamic glow effect
     mainAreaRef.current.style.setProperty('--mouse-x', `${x}px`);
     mainAreaRef.current.style.setProperty('--mouse-y', `${y}px`);
@@ -230,22 +236,71 @@ export default function AppPage() {
   // ── Send message ──
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!msgInput.trim() || !activeChannel) return;
+    if ((!msgInput.trim() && !attachmentFile) || !activeChannel || isSending) return;
 
     try {
+      setIsSending(true);
+      let finalAttachmentUrl = null;
+
+      // If there's an attachment, upload it first
+      if (attachmentFile) {
+        const formData = new FormData();
+        formData.append("image", attachmentFile);
+
+        const uploadRes = await fetch(`${API}/upload`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`
+            // Do NOT set Content-Type; FormData sets it with boundary
+          },
+          body: formData
+        });
+
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json();
+          alert(`Attachment upload failed: ${errData.error}`);
+          setIsSending(false);
+          return; // Abort sending
+        }
+
+        const uploadData = await uploadRes.json();
+        finalAttachmentUrl = uploadData.url;
+      }
+
       await fetch(
         `${API}/servers/${activeServer}/channels/${activeChannel}/messages`,
         {
           method: "POST",
           headers: authHeaders(token),
-          body: JSON.stringify({ content: msgInput }),
+          body: JSON.stringify({ 
+            content: msgInput,
+            attachmentUrl: finalAttachmentUrl
+          }),
         }
       );
       setMsgInput("");
+      cancelAttachment();
       fetchMessages();
     } catch (err) {
       console.error("Failed to send message:", err);
+    } finally {
+      setIsSending(false);
     }
+  };
+
+  const handleAttachmentChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAttachmentFile(file);
+      setAttachmentPreview(URL.createObjectURL(file));
+    }
+    // reset input so the same file over and over triggers change
+    e.target.value = null;
+  };
+
+  const cancelAttachment = () => {
+    setAttachmentFile(null);
+    setAttachmentPreview(null);
   };
 
   // ── Logout ──
@@ -256,7 +311,7 @@ export default function AppPage() {
 
   // ── Server created callback ──
   const onServerCreated = () => {
-    setIsServerModalOpen(false); 
+    setIsServerModalOpen(false);
     fetchServers();
   };
 
@@ -324,8 +379,8 @@ export default function AppPage() {
         <div ref={userPopupRef} className={styles.userPopup}>
           {/* Banner + Avatar */}
           <div className={styles.userPopupBanner}>
-            <div className={styles.userPopupAvatar}>
-              {username.charAt(0).toUpperCase()}
+            <div className={styles.userPopupAvatar} style={auth.user?.avatarUrl ? { backgroundImage: `url(${auth.user.avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', color: 'transparent' } : {}}>
+              {!auth.user?.avatarUrl && username.charAt(0).toUpperCase()}
               <div className={styles.userPopupStatusDot}></div>
             </div>
           </div>
@@ -404,8 +459,8 @@ export default function AppPage() {
         onClick={() => { setShowUserPopup(!showUserPopup); setShowStatusSubmenu(false); }}
       >
         <div className={styles.avatarWrapper}>
-          <div className={styles.userAvatar}>
-            {username.charAt(0).toUpperCase()}
+          <div className={styles.userAvatar} style={auth.user?.avatarUrl ? { backgroundImage: `url(${auth.user.avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', color: 'transparent' } : {}}>
+            {!auth.user?.avatarUrl && username.charAt(0).toUpperCase()}
           </div>
           <div className={styles.statusIndicator} style={{ background: STATUSES[currentStatus].indicatorColor }}></div>
         </div>
@@ -450,7 +505,9 @@ export default function AppPage() {
           )}
         </button>
         <button type="button" className={styles.userIconBtn} title="User Settings" onClick={() => setShowSettings(true)}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path fillRule="evenodd" clipRule="evenodd" d="M19.738 10H22V14H19.739C19.498 14.931 19.1 15.798 18.565 16.564L20.166 18.166L17.336 20.995L15.736 19.396C14.998 19.901 14.167 20.279 13.279 20.505V23H9.279V20.505C8.391 20.28 7.559 19.901 6.822 19.396L5.222 20.995L2.392 18.166L3.993 16.564C3.458 15.798 3.06 14.931 2.819 14H0.5V10H2.819C3.06 9.069 3.458 8.202 3.993 7.436L2.392 5.834L5.222 3.005L6.822 4.604C7.559 4.099 8.391 3.721 9.279 3.495V1H13.279V3.495C14.167 3.72 14.998 4.099 15.736 4.604L17.336 3.005L20.166 5.834L18.565 7.436C19.1 8.202 19.498 9.069 19.738 10ZM11.279 16C13.488 16 15.279 14.209 15.279 12C15.279 9.791 13.488 8 11.279 8C9.07 8 7.279 9.791 7.279 12C7.279 14.209 9.07 16 11.279 16Z" />
+          </svg>
         </button>
       </div>
     </footer>
@@ -481,10 +538,16 @@ export default function AppPage() {
             type="button"
             title={server.name}
             className={`${styles.serverIcon} ${activeServer === server.id ? styles.activeServer : ""}`}
-            style={{ backgroundColor: server.color || "#5865f2" }}
+            style={{
+              backgroundColor: server.color || "#5865f2",
+              backgroundImage: server.iconUrl ? `url(${server.iconUrl})` : 'none',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              color: server.iconUrl ? 'transparent' : 'inherit'
+            }}
             onClick={() => setActiveServer(server.id)}
           >
-            {server.name.charAt(0).toUpperCase()}
+            {!server.iconUrl && server.name.charAt(0).toUpperCase()}
           </button>
         ))}
 
@@ -562,8 +625,8 @@ export default function AppPage() {
                 <span>Text Channels</span>
                 {/* NEW: Add Channel Button - only for server owner */}
                 {serverData?.ownerId === userId && (
-                  <button 
-                    className={styles.addChannelBtn} 
+                  <button
+                    className={styles.addChannelBtn}
                     onClick={() => setIsChannelModalOpen(true)}
                     title="Create Channel"
                   >
@@ -584,7 +647,7 @@ export default function AppPage() {
                   {/* NEW: Delete Channel Button - only for server owner */}
                   {serverData?.ownerId === userId && (
                     <div className={styles.channelRight}>
-                      <svg 
+                      <svg
                         onClick={(e) => handleDeleteChannel(e, ch.id)}
                         className={styles.channelDeleteIcon}
                         width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -605,13 +668,13 @@ export default function AppPage() {
       </aside>
 
       {/* 3. MAIN AREA — INTEGRATED REF AND GLOW LAYER */}
-      <main 
-        className={styles.mainArea} 
-        ref={mainAreaRef} 
+      <main
+        className={styles.mainArea}
+        ref={mainAreaRef}
         onMouseMove={handleMouseMove}
       >
         <div className={styles.dynamicGlow}></div> {/* Dynamic Background Layer */}
-        
+
         {activeServer === "home" ? (
           <>
             <header className={styles.topHeader}>
@@ -703,9 +766,13 @@ export default function AppPage() {
                     ) : (
                       <div key={msg.id} className={styles.message}>
                         <div className={styles.msgAvatarCircle} style={{
-                          background: msg.authorId === userId ? '#5865f2' : '#23a559'
+                          background: msg.authorId === userId ? '#5865f2' : '#23a559',
+                          backgroundImage: msg.authorAvatarUrl ? `url(${msg.authorAvatarUrl})` : 'none',
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          color: msg.authorAvatarUrl ? 'transparent' : 'inherit'
                         }}>
-                          {(msg.authorId === userId ? username : msg.authorName)?.charAt(0).toUpperCase() || "?"}
+                          {!msg.authorAvatarUrl && ((msg.authorId === userId ? username : msg.authorName)?.charAt(0).toUpperCase() || "?")}
                         </div>
                         <div className={styles.msgContent}>
                           <div className={styles.msgHeader}>
@@ -718,7 +785,12 @@ export default function AppPage() {
                               {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
-                          <p className={styles.msgBody}>{msg.content}</p>
+                          {msg.content && <p className={styles.msgBody}>{msg.content}</p>}
+                          {msg.attachmentUrl && (
+                            <div className={styles.msgAttachmentWrap}>
+                              <img src={msg.attachmentUrl} alt="attachment" className={styles.msgAttachment} />
+                            </div>
+                          )}
                         </div>
                       </div>
                     )
@@ -727,18 +799,37 @@ export default function AppPage() {
                 </div>
 
                 {/* Message input */}
-                <form className={styles.chatInputBar} onSubmit={sendMessage}>
-                  <input
-                    type="text"
-                    className={styles.chatInput}
-                    placeholder={`Message #${activeChannelName}`}
-                    value={msgInput}
-                    onChange={(e) => setMsgInput(e.target.value)}
-                  />
-                  <button type="submit" className={styles.sendBtn} disabled={!msgInput.trim()}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
-                  </button>
-                </form>
+                <div className={styles.chatInputContainer}>
+                  {attachmentPreview && (
+                    <div className={styles.attachmentPreviewWrap}>
+                      <img src={attachmentPreview} alt="preview" className={styles.attachmentPreviewImg} />
+                      <button type="button" className={styles.cancelAttachmentBtn} onClick={cancelAttachment}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                      </button>
+                    </div>
+                  )}
+                  <form className={styles.chatInputBar} onSubmit={sendMessage}>
+                    <input type="file" style={{ display: 'none' }} ref={fileInputRef} onChange={handleAttachmentChange} accept="image/*" />
+                    <button type="button" className={styles.addAttachmentBtn} onClick={() => fileInputRef.current?.click()} disabled={isSending}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    </button>
+                    <input
+                      type="text"
+                      className={styles.chatInput}
+                      placeholder={`Message #${activeChannelName}`}
+                      value={msgInput}
+                      onChange={(e) => setMsgInput(e.target.value)}
+                      disabled={isSending}
+                    />
+                    <button type="submit" className={styles.sendBtn} disabled={(!msgInput.trim() && !attachmentFile) || isSending}>
+                      {isSending ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={styles.spinning}><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
+                      )}
+                    </button>
+                  </form>
+                </div>
               </div>
 
               {/* Members sidebar */}
@@ -750,9 +841,13 @@ export default function AppPage() {
                   <div key={m.id} className={styles.memberItem}>
                     <div className={styles.memberAvatarWrap}>
                       <div className={styles.memberAvatar} style={{
-                        background: m.id === serverData?.ownerId ? '#5865f2' : '#23a559'
+                        background: m.id === serverData?.ownerId ? '#5865f2' : '#23a559',
+                        backgroundImage: m.avatarUrl ? `url(${m.avatarUrl})` : 'none',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        color: m.avatarUrl ? 'transparent' : 'inherit'
                       }}>
-                        {m.username.charAt(0).toUpperCase()}
+                        {!m.avatarUrl && m.username.charAt(0).toUpperCase()}
                       </div>
                       <div className={styles.memberDot}></div>
                     </div>
@@ -771,7 +866,7 @@ export default function AppPage() {
       </main>
 
       {showSettings && <UserSettings onClose={() => setShowSettings(false)} />}
-      
+
       {/* SERVER MODAL GATEKEEPER */}
       {isServerModalOpen && (
         <CreateServerModal
@@ -786,11 +881,11 @@ export default function AppPage() {
           <div className={styles.modalContent}>
             <h3>Create Text Channel</h3>
             <form onSubmit={handleCreateChannel}>
-              <input 
-                type="text" 
-                placeholder="new-channel" 
-                value={newChannelName} 
-                onChange={(e) => setNewChannelName(e.target.value)} 
+              <input
+                type="text"
+                placeholder="new-channel"
+                value={newChannelName}
+                onChange={(e) => setNewChannelName(e.target.value)}
                 className={styles.modalInput}
                 autoFocus
               />
