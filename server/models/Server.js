@@ -25,13 +25,17 @@ const serverSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  iconUrl: {
+    type: String,
+    default: null,
+  },
   inviteCode: {
     type: String,
     required: true,
     unique: true,
   },
   ownerId: {
-    type: Number, // Keeping as Number for now to match current logic
+    type: Number,
     required: true,
   },
   members: [{

@@ -429,11 +429,39 @@ const postMessage = async (req, res) => {
   }
 };
 
+const updateServer = async (req, res) => {
+  const { id } = req.params;
+  const { name, iconUrl } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const server = await Server.findOne({ id });
+
+    if (!server) {
+      return res.status(404).json({ error: "Server not found" });
+    }
+
+    if (server.ownerId !== userId) {
+      return res.status(403).json({ error: "Only the owner can edit server settings" });
+    }
+
+    if (name) server.name = name.trim();
+    if (iconUrl !== undefined) server.iconUrl = iconUrl;
+
+    await server.save();
+    res.json({ message: "Server updated successfully", server });
+  } catch (err) {
+    console.error("updateServer error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   createServer,
   getMyServers,
   getServer,
   deleteServer,
+  updateServer, // Added here
   createChannel,
   deleteChannel,
   joinServer,

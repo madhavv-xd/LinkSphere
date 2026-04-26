@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CreateServerModal from '../components/CreateServerModal';
+import EditServerModal from '../components/EditServerModal';
 import Logo from '../components/Logo';
 import styles from "./AppPage.module.css";
 import UserSettings from "./UserSettings";
@@ -47,6 +48,7 @@ export default function AppPage() {
   const [friendInput, setFriendInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
+  const [isEditServerModalOpen, setIsEditServerModalOpen] = useState(false);
 
   // Channel Creation State
   const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
@@ -173,36 +175,36 @@ export default function AppPage() {
   }, [showUserPopup]);
 
   // ── Fetch full server data when active server changes ──
+  const fetchServerData = useCallback(async () => {
+    if (activeServer === "home" || !activeServer) return;
+    try {
+      const res = await fetch(`${API}/servers/${activeServer}`, { headers: authHeaders(token) });
+      if (res.ok) {
+        const data = await res.json();
+        setServerData(data);
+        if (data.channels.length > 0) {
+          setActiveChannel((prev) => {
+            const exists = data.channels.find((c) => c.id === prev);
+            return exists ? prev : data.channels[0].id;
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch server:", err);
+    }
+  }, [activeServer, token]);
+
   useEffect(() => {
-    if (activeServer === "home" || !activeServer) {
+    if (activeServer !== "home" && activeServer) {
+      fetchServerData();
+    } else {
       setServerData(null);
       setActiveChannel(null);
       setMessages([]);
       setShowServerMenu(false);
-      return;
     }
+  }, [activeServer, fetchServerData]);
 
-    const fetchServerData = async () => {
-      try {
-        const res = await fetch(`${API}/servers/${activeServer}`, { headers: authHeaders(token) });
-        if (res.ok) {
-          const data = await res.json();
-          setServerData(data);
-          // Auto-select first channel if none selected
-          if (data.channels.length > 0) {
-            setActiveChannel((prev) => {
-              const exists = data.channels.find((c) => c.id === prev);
-              return exists ? prev : data.channels[0].id;
-            });
-          }
-        }
-      } catch (err) {
-        console.error("Failed to fetch server:", err);
-      }
-    };
-
-    fetchServerData();
-  }, [activeServer, token]);
 
   // ── Fetch messages for active channel + poll every 3s ──
   const fetchMessages = useCallback(async () => {
@@ -606,6 +608,12 @@ export default function AppPage() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
                   Invite People
                 </button>
+                {serverData?.ownerId === userId && (
+                  <button className={styles.dropdownItem} onClick={() => { setIsEditServerModalOpen(true); setShowServerMenu(false); }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    Server Settings
+                  </button>
+                )}
                 {serverData?.ownerId !== userId && (
                   <button className={`${styles.dropdownItem} ${styles.dropdownDanger}`} onClick={handleLeaveServer}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
@@ -872,6 +880,14 @@ export default function AppPage() {
         <CreateServerModal
           onClose={() => setIsServerModalOpen(false)}
           onCreated={onServerCreated}
+        />
+      )}
+
+      {isEditServerModalOpen && (
+        <EditServerModal
+          server={serverData}
+          onClose={() => setIsEditServerModalOpen(false)}
+          onUpdated={() => { fetchServers(); fetchServerData(); }}
         />
       )}
 

@@ -17,6 +17,7 @@ const {
     postMessage,
     getServerByInvite,
     joinByInvite,
+    updateServer,
 } = require("../controllers/serverController");
 
 // ── Invite Links (must be BEFORE /:id routes) ────────────────────────────────
@@ -27,6 +28,7 @@ router.post("/invite/:code/join", verifyToken, joinByInvite);
 router.post("/", verifyToken, createServer);
 router.get("/mine", verifyToken, getMyServers);
 router.get("/:id", verifyToken, getServer);
+router.patch("/:id", verifyToken, updateServer);
 router.delete("/:id", verifyToken, deleteServer);
 
 // ── Channels ──────────────────────────────────────────────────────────────────
