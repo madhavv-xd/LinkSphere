@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import React, { useState, useEffect } from 'react';
-=======
-import React, { useState, useRef } from 'react';
->>>>>>> 9beddedfb8294afba91b626249da5125d86f1b42
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './UserSettings.module.css';
@@ -63,14 +59,12 @@ export default function UserSettings({ onClose }) {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
 
-<<<<<<< HEAD
   // Add Password state (for Google users without a password)
   const [showAddPasswordModal, setShowAddPasswordModal] = useState(false);
   const [addPwNew, setAddPwNew] = useState("");
   const [addPwConfirm, setAddPwConfirm] = useState("");
   const [addPwLoading, setAddPwLoading] = useState(false);
   const [addPwError, setAddPwError] = useState("");
-=======
   const [avatarUploadLoading, setAvatarUploadLoading] = useState(false);
   const avatarInputRef = useRef(null);
 
@@ -114,7 +108,8 @@ export default function UserSettings({ onClose }) {
       });
 
       if (updateRes.ok) {
-        auth.updateUser({ avatarUrl: newAvatarUrl });
+        const updateData = await updateRes.json();
+        auth.updateUser({ avatarUrl: newAvatarUrl, ...(updateData.user?.hasPassword !== undefined ? { hasPassword: updateData.user.hasPassword } : {}) });
         setSuccessToast("Avatar updated successfully!");
       } else {
         setEditError("Failed to update avatar.");
@@ -126,7 +121,6 @@ export default function UserSettings({ onClose }) {
       setAvatarUploadLoading(false);
     }
   };
->>>>>>> 9beddedfb8294afba91b626249da5125d86f1b42
 
   const maskedEmail = currentEmail.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(b.length) + c);
 
@@ -294,7 +288,8 @@ export default function UserSettings({ onClose }) {
       });
 
       if (res.ok) {
-        auth.updateUser({ hasPassword: true });
+        const data = await res.json();
+        auth.updateUser({ hasPassword: data.user?.hasPassword ?? true });
         setShowAddPasswordModal(false);
         setAddPwNew("");
         setAddPwConfirm("");
@@ -449,15 +444,15 @@ export default function UserSettings({ onClose }) {
             <div className={styles.cardBanner}></div>
 
             <div className={styles.cardHeader}>
-              <div 
-                className={styles.cardAvatarWrapper} 
-                style={{ 
-                  background: '#5865f2', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  color: '#fff', 
-                  fontSize: '1.2rem', 
+              <div
+                className={styles.cardAvatarWrapper}
+                style={{
+                  background: '#5865f2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  fontSize: '1.2rem',
                   fontWeight: 700,
                   position: 'relative',
                   cursor: 'pointer',
@@ -470,7 +465,7 @@ export default function UserSettings({ onClose }) {
                 title="Change Avatar"
               >
                 {!auth.user?.avatarUrl && currentUsername.charAt(0).toUpperCase()}
-                {avatarUploadLoading && <div style={{position: 'absolute', background: 'rgba(0,0,0,0.5)', width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize: '12px'}}>...</div>}
+                {avatarUploadLoading && <div style={{ position: 'absolute', background: 'rgba(0,0,0,0.5)', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>...</div>}
                 <input type="file" ref={avatarInputRef} onChange={handleAvatarSelect} style={{ display: "none" }} accept="image/*" />
               </div>
 

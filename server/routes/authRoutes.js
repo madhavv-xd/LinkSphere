@@ -40,6 +40,7 @@ router.get(
         email: req.user.email,
         dob: req.user.dob || "",
         hasPassword: !!req.user.password,
+        avatarUrl: req.user.avatarUrl || "",
       })
     );
 

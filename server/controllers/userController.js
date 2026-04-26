@@ -141,7 +141,7 @@ const updateUser = async (req, res) => {
     const updated = await users.findOne({ id });
     res.status(200).json({
       message: "User updated successfully",
-      user: { id: updated.id, username: updated.username, email: updated.email, dob: updated.dob, avatarUrl: updated.avatarUrl },
+      user: { id: updated.id, username: updated.username, email: updated.email, dob: updated.dob, hasPassword: !!updated.password, avatarUrl: updated.avatarUrl },
     });
   } catch (err) {
     console.error("updateUser error:", err);

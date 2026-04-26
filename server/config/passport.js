@@ -26,23 +26,30 @@ passport.use(
         const existingEmailUser = await users.findOne({ email });
 
         if (existingEmailUser) {
-          // Link Google account to existing user
+          // Link Google account to existing user (also sync Google photo if they have no avatar)
+          const linkFields = { googleId: profile.id };
+          const googlePhoto = profile.photos?.[0]?.value || null;
+          if (googlePhoto && !existingEmailUser.avatarUrl) {
+            linkFields.avatarUrl = googlePhoto;
+          }
           await users.updateOne(
             { email },
-            { $set: { googleId: profile.id } }
+            { $set: linkFields }
           );
           const updatedUser = await users.findOne({ email });
           return done(null, updatedUser);
         }
 
         // Create a new user from Google profile
+        const googlePhoto = profile.photos?.[0]?.value || null;
         const newUser = {
           id: Date.now(),
           username: profile.displayName || profile.name?.givenName || "User",
           email: email,
           dob: null,
-          password: null, // No password for OAuth users
+          password: null,     // No password for OAuth users
           googleId: profile.id,
+          avatarUrl: googlePhoto, // Store Google profile picture
         };
 
         await users.insertOne(newUser);

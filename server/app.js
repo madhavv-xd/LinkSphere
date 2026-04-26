@@ -25,6 +25,8 @@ app.use(passport.session());
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use("/api/users", userRoutes);
 app.use("/api/servers", serverRoutes);
+app.use("/api/auth", authRoutes);      // Google OAuth routes
+app.use("/api/upload", uploadRoutes);  // Cloudinary image upload
 
 // Health check
 app.get("/api/health", (req, res) => {
