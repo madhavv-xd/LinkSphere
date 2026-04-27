@@ -87,44 +87,23 @@ export default function AppPage() {
       });
 
       newSocket.on("user-online", ({ userId, socketId }) => {
-        setServerData(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            membersData: prev.membersData.map(m => 
-              m.id === userId ? { ...m, socketId } : m
-            )
-          };
-        });
+        setOnlineUsers(prev => ({ ...prev, [userId]: socketId }));
       });
 
       // Bulk snapshot of all currently-online users sent on connect
-      // This fixes the race condition where serverData is fetched before socketIds are registered
       newSocket.on("online-users-list", (onlineList) => {
-        setServerData(prev => {
-          if (!prev) return prev;
-          const onlineMap = {};
-          onlineList.forEach(({ userId: uid, socketId: sid }) => {
-            onlineMap[uid] = sid;
-          });
-          return {
-            ...prev,
-            membersData: prev.membersData.map(m =>
-              onlineMap[m.id] !== undefined ? { ...m, socketId: onlineMap[m.id] } : m
-            )
-          };
+        const onlineMap = {};
+        onlineList.forEach(({ userId: uid, socketId: sid }) => {
+          onlineMap[uid] = sid;
         });
+        setOnlineUsers(onlineMap);
       });
 
       newSocket.on("user-offline", ({ userId }) => {
-        setServerData(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            membersData: prev.membersData.map(m => 
-              m.id === userId ? { ...m, socketId: null } : m
-            )
-          };
+        setOnlineUsers(prev => {
+          const next = { ...prev };
+          delete next[userId];
+          return next;
         });
       });
 
@@ -136,6 +115,7 @@ export default function AppPage() {
   const [servers, setServers] = useState([]);
   const [activeServer, setActiveServer] = useState("home");
   const [serverData, setServerData] = useState(null); // full server details + members
+  const [onlineUsers, setOnlineUsers] = useState({}); // userId -> socketId
   
   // Sync refs
   useEffect(() => {
@@ -1010,7 +990,10 @@ export default function AppPage() {
                       }}>
                         {!m.avatarUrl && m.username.charAt(0).toUpperCase()}
                       </div>
-                      <div className={styles.memberDot}></div>
+                      <div 
+                        className={styles.memberDot} 
+                        style={{ background: onlineUsers[m.id] ? '#23a559' : '#80848e' }}
+                      ></div>
                     </div>
                     <span className={styles.memberName}>{m.username}</span>
                     {m.id === serverData?.ownerId && (
@@ -1024,28 +1007,28 @@ export default function AppPage() {
                         <button 
                           className={styles.callBtn} 
                           onClick={() => {
-                            if (!m.socketId) {
+                            if (!onlineUsers[m.id]) {
                               alert('User is not online');
                               return;
                             }
-                            startCall(m, 'audio');
+                            startCall({ ...m, socketId: onlineUsers[m.id] }, 'audio');
                           }}
-                          title={m.socketId ? "Audio call" : "User offline"}
-                          disabled={!m.socketId}
+                          title={onlineUsers[m.id] ? "Audio call" : "User offline"}
+                          disabled={!onlineUsers[m.id]}
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 1.66-1.34 3-3 3s-3-1.34-3-3H5c0 2.21 1.79 4 4 4s4-1.79 4-4h-2z"/></svg>
                         </button>
                         <button 
                           className={styles.callBtn} 
                           onClick={() => {
-                            if (!m.socketId) {
+                            if (!onlineUsers[m.id]) {
                               alert('User is not online');
                               return;
                             }
-                            startCall(m, 'video');
+                            startCall({ ...m, socketId: onlineUsers[m.id] }, 'video');
                           }}
-                          title={m.socketId ? "Video call" : "User offline"}
-                          disabled={!m.socketId}
+                          title={onlineUsers[m.id] ? "Video call" : "User offline"}
+                          disabled={!onlineUsers[m.id]}
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
                         </button>
